@@ -400,7 +400,7 @@ std::string const RandomPlayerbotFactory::CreateRandomBotName(Gender gender)
             "SELECT n.name "
             "FROM playerbots_names n "
             "LEFT OUTER JOIN characters c ON c.name = n.name "
-            "WHERE c.guid IS NULL and n.gender = '%d' "
+            "WHERE c.guid IS NULL and n.gender = '{}' "
             "ORDER BY RAND() LIMIT 1",
             (uint8)gender);
         if (!result)
