@@ -17,7 +17,7 @@ ported or is compiled but never switched on.
 | Phase | Status |
 |---|---|
 | 0: make the existing code work | Done (2026-10-15) |
-| 1: chat commands | Part 1 done (2026-10-15): chat plumbing and control commands. Part 2 next: item, trade, quest and talent commands |
+| 1: chat commands | Done (2026-10-15): chat plumbing, control commands, and item, trade, quest, spell and talent commands. Other commands come with the systems they control |
 | 2: upkeep | Not started |
 | 3: class rotations for 5.4.8 | Not started; to-do list in the Phase 0 results |
 | 4: life in the world | Not started |
@@ -129,10 +129,10 @@ grouping with bots.
 
 - **Part 1 (done):** the chat plumbing, replies, and the control commands
   (see "Phase 1 results, part 1").
-- **Part 2:** a full `ChatHelper` (item, quest and spell link parsing and
+- **Part 2 (done):** a full `ChatHelper` (item, quest and spell link parsing and
   formatting) and the inventory commands: `equip`, `unequip`, `sell`, `use`,
-  `trade`, item links, `quests`, `talents`, `spells`. Loot commands wait for the
-  Phase 2 loot port.
+  `trade`, item links, `quests`, `talents`, `spells` (see "Phase 1 results, part 2").
+  Loot commands wait for the Phase 2 loot port.
 
 ### Phase 2: upkeep (2–3 weeks)
 
@@ -301,3 +301,57 @@ Built and run without errors; the chat flow itself still needs testing in game.
 AzerothCore's other chat commands, roughly 100. The inventory, trade, quest and talent
 commands are part 2; others (loot, mail, bank, guild, LFG, crafting, glyphs, pets,
 battlegrounds) come with the phases that port those systems.
+
+## Phase 1 results, part 2 (2026-10-15)
+
+Bots can be asked about and told to handle their items, quests, spells and talents, and
+they trade. Built and run (50 random bots) without errors or new warnings; the commands
+themselves still need testing in game.
+
+### Done
+
+- **`ChatHelper`** parses item, quest and spell links, money (`1g 20s`), item qualities,
+  consumable and trade-goods classes, equipment slots and professions, and formats item,
+  quest and spell links. Item links use the 10-property layout the core's `ChatLink`
+  validates. Lookup tables are function-local constants, so bots on different map threads
+  share them safely (AzerothCore fills static maps from a per-bot constructor).
+- **Commands:**
+
+  | Command | Action |
+  |---|---|
+  | `c [items]` | Count matching items, or list the whole inventory by item class |
+  | `e`, `equip <items>` | Equip from the bags, through the core's auto-equip handler (swaps, bags, two-handers) |
+  | `ue`, `unequip <items or slots>` | Move equipped items to the bags; slots can be listed (`ue head, hands`) |
+  | `s`, `sell <items>` | Sell to a vendor in range. `s gray` / `s *`: grey items; `s <quality>`: armor and weapons up to that quality; `s <quality> all`: every kind |
+  | `u`, `use <item> [target item]` | Use an item on the bot, on a second linked item, or (harmful items) on the bot's or master's target |
+  | `t`, `trade <items or money>` | Open a trade with the commander and put items or gold in it |
+  | `quests [co\|in\|all]` | Quest log counts, or completed / incomplete / all quests as links |
+  | `spells [profession] [name]` | Spells as links; profession recipes show what they make and the reagents the bot has |
+  | `talents` | Specialization and the talent in each unlocked tier |
+  | `talents spec <name>` | Switch specialization (keeps gear, picks talents, resets strategies) |
+  | `talents <name or link>` | Take that talent, replacing the one in its tier |
+
+  Items can be named by link, by part of the name, by quality, by class (`potion`,
+  `food`, `cloth`, `herb`, ...), by slot or by keyword (`food`, `drink`, `mana potion`,
+  `healing potion`, `mount`, `pet`, `recipe`, `quest`). A trailing number limits how many a
+  quality or class matches.
+- **Shift-clicked items:** a message containing an item link gets an item count from the
+  bots that have it, and goes into an open trade with that player.
+- **Trading:** bots open trades from their master, GMs and group (others get "I'm kind of
+  busy now"), add items requested before the window opened once it is, and accept when the
+  other side accepts. Items only go into the window on a command from the player they are
+  trading with.
+- **Who can manage a bot:** commands that give away, sell, use or change things (`e`,
+  `ue`, `s`, `u`, `t`, changing talents) are limited to the master and GMs. Listing commands
+  are open to the group.
+- **Fixes:** the bot packet queue was a `std::stack` (handled newest first) with no lock
+  while packets arrive from other sessions; it is now a locked FIFO. `TellMaster` no
+  longer drops repeated lines (list headers, a second `c`) when answering a command.
+  `strstri`, declared but never defined, is defined.
+
+### Not ported from AzerothCore
+
+- Random-bot trade economy (selling to players for gold, discounts, buy/sell multipliers).
+- `s vendor` and auto-equip of upgrades: need the item usage value (Phase 2).
+- Outfits, the bank, opening lootable items (`u` refuses them; looting is Phase 2),
+  quest travel detail, `talents` premade links and glyphs.
