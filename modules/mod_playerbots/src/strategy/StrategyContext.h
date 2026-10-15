@@ -6,6 +6,7 @@
 
 #include "NamedObjectContext.h"
 
+#include "ChatCommandHandlerStrategy.h"
 #include "ConserveManaStrategy.h"
 #include "DeadStrategy.h"
 #include "DpsAssistStrategy.h"
@@ -16,6 +17,7 @@
 #include "GroupStrategy.h"
 #include "MeleeCombatStrategy.h"
 #include "MoveFromGroupStrategy.h"
+#include "PassiveStrategy.h"
 #include "NewRpgStrategy.h"
 #include "TankAssistStrategy.h"
 #include "ThreatStrategy.h"
@@ -47,6 +49,8 @@ public:
         // -- temp
         creators["say hello"] = &StrategyContext::say_hello;
         creators["new rpg"] = &StrategyContext::new_rpg;
+        creators["chat"] = &StrategyContext::chat;
+        creators["passive"] = &StrategyContext::passive;
         creators["grind"] = &StrategyContext::grind;
         creators["move random"] = &StrategyContext::move_random;
     }
@@ -55,6 +59,8 @@ private:
     // -- temp
     static Strategy* say_hello(PlayerbotAI* botAI) { return new HelloStrategy(botAI); }
     static Strategy* new_rpg(PlayerbotAI* botAI) { return new NewRpgStrategy(botAI); }
+    static Strategy* chat(PlayerbotAI* botAI) { return new ChatCommandHandlerStrategy(botAI); }
+    static Strategy* passive(PlayerbotAI* botAI) { return new PassiveStrategy(botAI); }
     static Strategy* grind(PlayerbotAI* botAI) { return new GrindingStrategy(botAI); }
     static Strategy* move_random(PlayerbotAI* botAI) { return new MoveRandomStrategy(botAI); }
     // --

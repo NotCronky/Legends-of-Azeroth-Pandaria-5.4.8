@@ -1,6 +1,8 @@
 #ifndef _PLAYERBOT_PLAYERBOTAI_H
 #define _PLAYERBOT_PLAYERBOTAI_H
 
+#include <list>
+#include <mutex>
 #include <queue>
 #include <stack>
 
@@ -119,6 +121,10 @@ public:
     bool AllowActive(ActivityType activityType);
     void DoNextAction(bool min);
 
+    // Chat from a player to this bot (whisper, party or raid). May be called from another map's thread.
+    void HandleCommand(uint32 type, std::string const& text, Player* fromPlayer);
+    bool CanTakeCommandFrom(Player* fromPlayer) const;
+
     void HandleBotOutgoingPacket(WorldPacket const& packet);
     void HandleMasterIncomingPacket(WorldPacket const& packet);
     void HandleMasterOutgoingPacket(WorldPacket const& packet);
@@ -220,6 +226,15 @@ public:
 private:
     bool _isBotInitializing;
 
+    struct ChatCommandHolder
+    {
+        std::string command;
+        ObjectGuid owner;
+        uint32 type;
+    };
+
+    void HandleCommands();
+
 protected:
     Player* bot;
     Player* master;
@@ -230,15 +245,17 @@ protected:
     BotState _currentState;
     NewRpgInfo _rpgInfo;
     //ChatHelper chatHelper;
-    //std::list<ChatCommandHolder> chatCommands;
+    std::list<ChatCommandHolder> chatCommands;
+    std::mutex chatCommandsLock;
     //std::list<ChatQueuedReply> chatReplies;
     PacketHandlingHelper botOutgoingPacketHandlers;
     PacketHandlingHelper masterIncomingPacketHandlers;
     PacketHandlingHelper masterOutgoingPacketHandlers;
     //CompositeChatFilter chatFilter;
     //PlayerbotSecurity security;
-    //std::map<std::string, time_t> whispers;
-    //std::pair<ChatMsg, time_t> currentChat;
+    std::map<std::string, time_t> whispers;
+    // Reply channel for the command being handled; replies go back to the channel the command came from
+    std::pair<ChatMsg, time_t> currentChat{ CHAT_MSG_WHISPER, 0 };
     //static std::set<std::string> unsecuredCommands;
     bool _allowActive[MAX_ACTIVITY_TYPE];
     time_t _allowActiveCheckTimer[MAX_ACTIVITY_TYPE];

@@ -28,6 +28,7 @@
 #include "CreatureAIImpl.h"
 #include "Engine.h"
 #include "ExternalEventHelper.h"
+#include "Group.h"
 #include "GuildMgr.h"
 #include "Helper.h"
 #include "LastMovementValue.h"
@@ -37,6 +38,7 @@
 #include "MotionMaster.h"
 #include "MoveSpline.h"
 #include "MoveSplineInit.h"
+#include "ObjectAccessor.h"
 #include "Player.h"
 #include "PositionValue.h"
 #include "PointMovementGenerator.h"
@@ -56,6 +58,7 @@
 #include "Unit.h"
 #include "Vehicle.h"
 #include "UpdateFields.h"
+#include "Util.h"
 
 PlayerbotChatHandler::PlayerbotChatHandler(Player* pMasterPlayer) : ChatHandler(pMasterPlayer->GetSession())
 {
@@ -354,6 +357,8 @@ void PlayerbotAI::UpdateAIInternal([[maybe_unused]] uint32 elapsed, bool minimal
         SetNextCheckDelay(sPlayerbotAIConfig->reactDelay);
         return;
     }
+
+    HandleCommands();
 
     botOutgoingPacketHandlers.Handle(helper);
     masterIncomingPacketHandlers.Handle(helper);
@@ -1072,6 +1077,114 @@ void PlayerbotAI::HandleTeleportAck()
     SetNextCheckDelay(sPlayerbotAIConfig->globalCoolDown);
 }
 
+void PlayerbotAI::HandleCommand(uint32 type, std::string const& text, Player* fromPlayer)
+{
+    if (!fromPlayer || fromPlayer == bot)
+        return;
+
+    // Bots talk to their masters through Player::Whisper too; a bot master must not treat replies as commands
+    if (GET_PLAYERBOT_AI(fromPlayer))
+        return;
+
+    if (type != CHAT_MSG_WHISPER && type != CHAT_MSG_PARTY && type != CHAT_MSG_PARTY_LEADER &&
+        type != CHAT_MSG_RAID && type != CHAT_MSG_RAID_LEADER)
+        return;
+
+    std::string const& separator = sPlayerbotAIConfig->commandSeparator;
+    if (!separator.empty() && text.find(separator) != std::string::npos)
+    {
+        size_t start = 0;
+        for (size_t found = text.find(separator); found != std::string::npos; found = text.find(separator, start))
+        {
+            HandleCommand(type, text.substr(start, found - start), fromPlayer);
+            start = found + separator.size();
+        }
+        HandleCommand(type, text.substr(start), fromPlayer);
+        return;
+    }
+
+    std::string filtered = text;
+    TrimString(filtered);
+    std::string const& prefix = sPlayerbotAIConfig->commandPrefix;
+    if (!prefix.empty())
+    {
+        if (filtered.find(prefix) != 0)
+            return;
+
+        filtered = filtered.substr(prefix.size());
+        TrimString(filtered);
+    }
+
+    if (filtered.empty())
+        return;
+
+    if (!CanTakeCommandFrom(fromPlayer))
+    {
+        // Runs on the sender's thread: answer through the sender's session only
+        if (type == CHAT_MSG_WHISPER)
+        {
+            WorldPacket data;
+            ChatHandler::BuildChatPacket(data, CHAT_MSG_WHISPER, LANG_UNIVERSAL, bot, fromPlayer,
+                "I only take orders from my group.");
+            fromPlayer->SendDirectMessage(&data);
+        }
+        return;
+    }
+
+    std::lock_guard<std::mutex> guard(chatCommandsLock);
+    chatCommands.push_back({ filtered, fromPlayer->GetGUID(), type });
+}
+
+bool PlayerbotAI::CanTakeCommandFrom(Player* fromPlayer) const
+{
+    if (fromPlayer == master)
+        return true;
+
+    if (fromPlayer->GetSession()->GetSecurity() >= SEC_GAMEMASTER)
+        return true;
+
+    Group* group = bot->GetGroup();
+    return group && group == fromPlayer->GetGroup();
+}
+
+void PlayerbotAI::HandleCommands()
+{
+    std::list<ChatCommandHolder> commands;
+    {
+        std::lock_guard<std::mutex> guard(chatCommandsLock);
+        commands.swap(chatCommands);
+    }
+
+    if (commands.empty())
+        return;
+
+    ExternalEventHelper helper(_aiObjectContext);
+    for (ChatCommandHolder const& holder : commands)
+    {
+        Player* owner = ObjectAccessor::FindConnectedPlayer(holder.owner);
+        if (!owner)
+            continue;
+
+        // Answer in the channel the command came from
+        ChatMsg replyType = CHAT_MSG_WHISPER;
+        if (holder.type == CHAT_MSG_PARTY || holder.type == CHAT_MSG_PARTY_LEADER)
+            replyType = CHAT_MSG_PARTY;
+        else if (holder.type == CHAT_MSG_RAID || holder.type == CHAT_MSG_RAID_LEADER)
+            replyType = CHAT_MSG_RAID;
+        currentChat = std::make_pair(replyType, time(nullptr) + 2);
+
+        if (holder.command == "reset")
+        {
+            Reset(true);
+            TellMaster("Reset");
+            continue;
+        }
+
+        if (!helper.ParseChatCommand(holder.command, owner) && holder.type == CHAT_MSG_WHISPER)
+            bot->Whisper("Unknown command: " + holder.command + ". Whisper 'help' for the list.", LANG_UNIVERSAL, owner);
+    }
+}
+
 void PlayerbotAI::HandleBotOutgoingPacket(WorldPacket const& packet)
 {
     if (packet.empty())
@@ -1476,38 +1589,32 @@ bool PlayerbotAI::TellMasterNoFacing(std::ostringstream& stream)
 bool PlayerbotAI::TellMasterNoFacing(std::string const text)
 {
     Player* master = GetMaster();
-    PlayerbotAI* masterBotAI = nullptr;
-    if (master)
-        masterBotAI = GET_PLAYERBOT_AI(master);
-
-    /*if ((!master || (masterBotAI && !masterBotAI->IsRealPlayer())) &&
-        (sPlayerbotAIConfig->randomBotSayWithoutMaster || HasStrategy("debug", BOT_STATE_NON_COMBAT)))
-    {
-        bot->Say(text, (bot->GetTeamId() == TEAM_ALLIANCE ? LANG_COMMON : LANG_ORCISH));
-        return true;
-    }
-
-    if (!IsTellAllowed(securityLevel))
+    if (!master)
         return false;
 
-    time_t lastSaid = whispers[text];
+    // A bot master (e.g. a random bot leading other bots) isn't a reader
+    if (PlayerbotAI* masterBotAI = GET_PLAYERBOT_AI(master))
+        if (!masterBotAI->IsRealPlayer())
+            return false;
 
-    if (!lastSaid || (time(nullptr) - lastSaid) >= sPlayerbotAIConfig->repeatDelay / 1000)
-    {
-        whispers[text] = time(nullptr);
+    // Don't repeat the same line within RepeatDelay
+    time_t const now = time(nullptr);
+    time_t& lastSaid = whispers[text];
+    if (lastSaid && (now - lastSaid) < sPlayerbotAIConfig->repeatDelay / 1000)
+        return true;
 
-        ChatMsg type = CHAT_MSG_WHISPER;
-        if (currentChat.second - time(nullptr) >= 1)
-            type = currentChat.first;
+    lastSaid = now;
 
-        WorldPacket data;
-        ChatHandler::BuildChatPacket(data, type == CHAT_MSG_ADDON ? CHAT_MSG_PARTY : type,
-            type == CHAT_MSG_ADDON ? LANG_ADDON : LANG_UNIVERSAL, bot, nullptr, text.c_str());
-        master->SendDirectMessage(&data);
-    }*/
+    ChatMsg type = CHAT_MSG_WHISPER;
+    if (currentChat.second > now && bot->GetGroup() && bot->GetGroup() == master->GetGroup())
+        type = currentChat.first;
 
+    WorldPacket data;
+    ChatHandler::BuildChatPacket(data, type, LANG_UNIVERSAL, bot, master, text);
+    master->SendDirectMessage(&data);
     return true;
 }
+
 bool PlayerbotAI::TellError(std::string const text)
 {
     Player* master = GetMaster();

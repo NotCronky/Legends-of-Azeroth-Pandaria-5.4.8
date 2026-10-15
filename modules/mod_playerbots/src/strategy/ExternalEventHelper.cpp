@@ -11,7 +11,14 @@
 
 bool ExternalEventHelper::ParseChatCommand(std::string const command, Player* owner)
 {
-    if (HandleCommand(command, "", owner))
+    // Chat text is user input: only look up names that are registered so ordinary chat isn't reported as missing
+    std::set<std::string> const supported = aiObjectContext->GetSupportedTriggers();
+    auto handle = [&](std::string const& name, std::string const& param)
+    {
+        return supported.count(name) && HandleCommand(name, param, owner);
+    };
+
+    if (handle(command, ""))
         return true;
 
     size_t i = std::string::npos;
@@ -26,17 +33,17 @@ bool ExternalEventHelper::ParseChatCommand(std::string const command, Player* ow
 
         i = found - 1;
 
-        if (HandleCommand(name, param, owner))
+        if (handle(name, param))
             return true;
     }
 
     //if (!ChatHelper::parseable(command))
         //return false;
 
-    HandleCommand("c", command, owner);
-    HandleCommand("t", command, owner);
-
-    return true;
+    // Item links: item count and trade, once those commands are ported
+    bool const counted = handle("c", command);
+    bool const traded = handle("t", command);
+    return counted || traded;
 }
 
 void ExternalEventHelper::HandlePacket(std::map<uint16, std::string>& handlers, WorldPacket const& packet,

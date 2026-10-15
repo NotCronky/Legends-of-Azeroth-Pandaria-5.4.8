@@ -78,6 +78,7 @@ public:
     uint32 iterationsPerTick;
 
     std::string combatStrategies, nonCombatStrategies;
+    std::string commandPrefix, commandSeparator;
     std::string randomBotCombatStrategies, randomBotNonCombatStrategies;
     std::vector<uint32> pvpProhibitedZoneIds;
     std::vector<uint32> pvpProhibitedAreaIds;

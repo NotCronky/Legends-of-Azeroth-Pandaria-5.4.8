@@ -66,6 +66,7 @@ public:
     std::set<std::string> GetValues();
     std::set<std::string> GetSupportedStrategies();
     std::set<std::string> GetSupportedActions();
+    std::set<std::string> GetSupportedTriggers();
     std::string const FormatValues();
 
     virtual void Update();

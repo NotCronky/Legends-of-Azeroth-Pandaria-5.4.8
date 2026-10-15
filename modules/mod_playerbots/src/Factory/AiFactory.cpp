@@ -232,8 +232,8 @@ void AiFactory::AddDefaultCombatStrategies(Player* player, PlayerbotAI* const fa
 {
     if (!player->InBattleground())
     {
-        // "racials", "chat", "cast time", "duel" and "avoid aoe" are added back as they get ported
-        engine->addStrategiesNoInit("default", "boost", nullptr);
+        // "racials", "cast time", "duel" and "avoid aoe" are added back as they get ported
+        engine->addStrategiesNoInit("chat", "default", "boost", nullptr);
     }
     engine->addStrategy("formation", false);
 
@@ -561,8 +561,8 @@ void AiFactory::AddDefaultNonCombatStrategies(Player* player, PlayerbotAI* const
     }
     if (!player->InBattleground())
     {
-        // "food", "chat", "quest", "loot", "gather", "duel", "mount" and "emote" are added back as they get ported
-        nonCombatEngine->addStrategiesNoInit("nc", "follow", "default", "buff", nullptr);
+        // "food", "quest", "loot", "gather", "duel", "mount" and "emote" are added back as they get ported
+        nonCombatEngine->addStrategiesNoInit("nc", "chat", "follow", "default", "buff", nullptr);
     }
 
     // Random bots that aren't following anyone live on their own
@@ -594,7 +594,7 @@ Engine* AiFactory::createNonCombatEngine(Player* player, PlayerbotAI* const faca
 void AiFactory::AddDefaultDeadStrategies(Player* player, PlayerbotAI* const facade, Engine* deadEngine)
 {
     (void)facade;  // unused and remove warning
-    deadEngine->addStrategiesNoInit("dead", "stay", "default", "follow", nullptr);
+    deadEngine->addStrategiesNoInit("dead", "stay", "chat", "default", "follow", nullptr);
 
     if (sRandomPlayerbotMgr->IsRandomBot(player) && !player->GetGroup())
     {

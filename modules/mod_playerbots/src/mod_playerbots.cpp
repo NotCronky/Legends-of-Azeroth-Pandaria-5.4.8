@@ -8,6 +8,7 @@
 #include "Chat.h"
 #include "ChannelMgr.h"
 #include "Config.h"
+#include "Group.h"
 #include "cs_playerbots.h"
 #include "Log.h"
 #include "Player.h"
@@ -190,6 +191,33 @@ public:
 
                 ChatHandler(player->GetSession()).SendSysMessage(std::string("Playerbots: bot initialization at server startup takes about '" + roundedTime + "' minutes.").c_str());
             }
+        }
+    }
+
+    // A player whispering one of their bots, or any bot
+    void OnChat(Player* player, uint32 type, uint32 /*lang*/, std::string& msg, Player* receiver) override
+    {
+        if (type != CHAT_MSG_WHISPER || !receiver)
+            return;
+
+        if (PlayerbotAI* botAI = GET_PLAYERBOT_AI(receiver))
+            botAI->HandleCommand(type, msg, player);
+    }
+
+    // Party and raid chat reaches every bot in the group
+    void OnChat(Player* player, uint32 type, uint32 /*lang*/, std::string& msg, Group* group) override
+    {
+        if (!group)
+            return;
+
+        for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
+        {
+            Player* member = itr->GetSource();
+            if (!member || member == player)
+                continue;
+
+            if (PlayerbotAI* botAI = GET_PLAYERBOT_AI(member))
+                botAI->HandleCommand(type, msg, player);
         }
     }
 

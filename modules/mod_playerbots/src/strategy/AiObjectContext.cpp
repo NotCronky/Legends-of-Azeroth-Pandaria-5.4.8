@@ -10,6 +10,8 @@
 
 #include "Helper.h"
 #include "ActionContext.h"
+#include "ChatActionContext.h"
+#include "ChatTriggerContext.h"
 
 #include "Playerbots.h"
 
@@ -29,9 +31,11 @@ AiObjectContext::AiObjectContext(PlayerbotAI* botAI) : PlayerbotAIAware(botAI)
 
     actionContexts.Add(new ActionContext());
     actionContexts.Add(new WorldPacketActionContext());
+    actionContexts.Add(new ChatActionContext());
 
     triggerContexts.Add(new TriggerContext());
     triggerContexts.Add(new WorldPacketTriggerContext());
+    triggerContexts.Add(new ChatTriggerContext());
 
     valueContexts.Add(new ValueContext());
     valueContexts.Add(sSharedValueContext);
@@ -162,6 +166,8 @@ std::set<std::string> AiObjectContext::GetValues() { return valueContexts.GetCre
 std::set<std::string> AiObjectContext::GetSupportedStrategies() { return strategyContexts.supports(); }
 
 std::set<std::string> AiObjectContext::GetSupportedActions() { return actionContexts.supports(); }
+
+std::set<std::string> AiObjectContext::GetSupportedTriggers() { return triggerContexts.supports(); }
 
 std::string const AiObjectContext::FormatValues()
 {

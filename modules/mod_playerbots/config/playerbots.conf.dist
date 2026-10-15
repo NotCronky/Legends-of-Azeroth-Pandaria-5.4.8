@@ -9,6 +9,7 @@ ConfVersion=2024050400
 #   GENERAL SETTINGS
 #   PLAYERBOT SETTINGS
 #       GENERAL
+#       CHAT
 #       TIMERS
 #       DISTANCES
 #       THRESHOLDS
@@ -76,6 +77,27 @@ AiPlayerbot.MaxAddedBots = 40
 
 # Maximum number of bots per class added by one account
 AiPlayerbot.MaxAddedBotsPerClass = 40
+
+#
+#
+#
+####################################################################################################
+
+####################################################################################################
+# CHAT
+#
+#
+
+# Whisper a bot, or use party/raid chat, to command it. Bots take commands from their master,
+# from GMs and from players in their group. Whisper "help" to a bot for the command list.
+
+# Only treat messages starting with this prefix as commands (e.g. "!" for "!follow")
+# Default: "" (every message is a command)
+AiPlayerbot.CommandPrefix = ""
+
+# Separates several commands in one message (e.g. "follow\\stats")
+# Default: "\\"
+AiPlayerbot.CommandSeparator = "\\"
 
 #
 #
