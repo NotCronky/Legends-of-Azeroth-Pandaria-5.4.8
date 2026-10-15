@@ -4,13 +4,27 @@ Comparison of `modules/mod_playerbots` (MoP 5.4.8) against AzerothCore
 [mod-playerbots](https://github.com/mod-playerbots/mod-playerbots) (WotLK 3.3.5,
 checkout dated 2026-09-20), and a plan to bring the MoP bots to parity.
 
-Audit date: 2026-10-15.
+Audit date: 2026-10-15. Last updated: 2026-10-15.
 
 ## Summary
 
 The MoP module is the core engine (combat and follow) plus partly updated class
 rotations. Most of what makes the AzerothCore bots feel alive was either never
 ported or is compiled but never switched on.
+
+## Status
+
+| Phase | Status |
+|---|---|
+| 0: make the existing code work | Done (2026-10-15) |
+| 1: chat commands | Part 1 done (2026-10-15): chat plumbing and control commands. Part 2 next: item, trade, quest and talent commands |
+| 2: upkeep | Not started |
+| 3: class rotations for 5.4.8 | Not started; to-do list in the Phase 0 results |
+| 4: life in the world | Not started |
+| 5: group content | Not started |
+
+The audit below describes the module before any of this work; see the results sections at
+the end for what changed.
 
 ## Audit
 
@@ -61,9 +75,10 @@ follows, or idles.
   of these.
 - `InitTalentsTree` picks a spec with `rand() % 3`, so druids can never roll their
   4th spec (Guardian).
-- **Monk is not supported.** `RandomPlayerbotMgr` skips class 10, and there are no
-  Monk strategies. Spec detection (`AiFactory`, `GetSpecialization()`) is MoP-aware
-  and already maps the Monk specs.
+- **Monk is not supported.** Random Monk bots are created, but there is no Monk
+  class context or strategies, and `RandomPlayerbotMgr::PrepareAddclassCache` skips
+  class 10, so the GM `addclass` command can't add one. Spec detection
+  (`AiFactory`, `GetSpecialization()`) is MoP-aware and already maps the Monk specs.
 
 ### Class rotations
 
@@ -112,6 +127,13 @@ attack, flee, loot, summon, stats, quests, equip, sell, trade, talents and the
 strategy toggles (`co` / `nc`). This is the biggest usability gap for players
 grouping with bots.
 
+- **Part 1 (done):** the chat plumbing, replies, and the control commands
+  (see "Phase 1 results, part 1").
+- **Part 2:** a full `ChatHelper` (item, quest and spell link parsing and
+  formatting) and the inventory commands: `equip`, `unequip`, `sell`, `use`,
+  `trade`, item links, `quests`, `talents`, `spells`. Loot commands wait for the
+  Phase 2 loot port.
+
 ### Phase 2: upkeep (2–3 weeks)
 
 1. Looting and rolling, eating and drinking, potions, buffs, mounts, and repairing
@@ -128,8 +150,8 @@ grouping with bots.
    Hunter, Paladin, Rogue and Death Knight around their 5.4.8 abilities. Add the
    missing specs (Hunter BM/MM/SV, Rogue Combat/Subtlety).
 2. Write Monk from scratch (Brewmaster, Mistweaver, Windwalker) using the existing
-   spec mapping, then remove the `claz == 10` skip in `RandomPlayerbotMgr` so random
-   Monk bots get created.
+   spec mapping, then remove the `claz == 10` skip in
+   `RandomPlayerbotMgr::PrepareAddclassCache` so `addclass` can add Monks.
 3. Adopt AzerothCore's per-class folder layout (`Ai/Class/<Class>/...`) while doing
    this, so later ports line up.
 
@@ -195,7 +217,7 @@ scripts don't apply to MoP.
 registrations commented out, so hunters run on generic strategies only.
 
 **Monk bots are created but have no class context**, so they also run on generic
-strategies (Phase 3).
+strategies (Phase 3). The `addclass` cache also skips Monks.
 
 **Spell check output** (cast actions whose spell the class can't learn in 5.4.8; bots look
 spells up by exact lowercase name, so renamed abilities such as `anti magic shell` vs
@@ -236,3 +258,46 @@ class rotations reference triggers that don't exist, so those branches never fir
 - Warlock: `amplify curse`, `no healthstone`, `life tap glyph buff`; action `howl of terror`.
 - Death Knight: `bone shield`, `horn of winter`. Warrior: `demoralizing shout`; action
   `dragon_roar`.
+
+## Phase 1 results, part 1 (2026-10-15)
+
+Bots can now be commanded by whisper and by party or raid chat, and they answer.
+Built and run without errors; the chat flow itself still needs testing in game.
+
+### Done
+
+- **Chat reaches bots.** The module's player script hooks the core's whisper and group
+  `OnChat` events. `PlayerbotAI::HandleCommand` queues each command, keyed by the
+  sender's GUID and guarded by a mutex because chat arrives on the sender's map thread;
+  `HandleCommands` runs the queue on the bot's next update.
+- **Who can command a bot:** its master (for example the player who invited it), GMs,
+  and players in its group. Other players get "I only take orders from my group."
+  Chat from other bots is ignored, so a bot master can't loop on its bots' replies.
+- **Bots answer.** `TellMaster` was entirely commented out; it now replies on the channel
+  the command came from (whisper or party/raid) and doesn't repeat a line within
+  `AiPlayerbot.RepeatDelay`. A whispered unknown command gets a hint to whisper `help`.
+- **Ordinary chat isn't parsed as missing names.** `ExternalEventHelper::ParseChatCommand`
+  only looks up registered triggers and reports whether anything matched.
+- **Commands:**
+
+  | Command | Action |
+  |---|---|
+  | `help` | List commands and strategies |
+  | `follow`, `stay` | Follow the master / hold position |
+  | `attack` | Attack the master's target |
+  | `flee`, `runaway` | Follow without fighting (new `passive` strategy) / run away |
+  | `grind` | Fight nearby mobs |
+  | `tank attack`, `max dps`, `move from group` | Tank engage, all-out damage, spread out |
+  | `summon` | Teleport to the master, reviving first if dead |
+  | `stats` | Gold, bag space, durability and repair cost (same formula as the core), XP |
+  | `co`, `nc`, `de` | Change (`+name`, `-name`) or list (`?`) combat, non-combat or dead strategies |
+  | `leave`, `rti`, `rpg status`, `reset` | Leave the group, raid icon targets, wandering status, reset the AI |
+
+- **Config:** `AiPlayerbot.CommandPrefix` (require a prefix such as `!`) and
+  `AiPlayerbot.CommandSeparator` (several commands in one message, default `\\`).
+
+### Not yet ported
+
+AzerothCore's other chat commands, roughly 100. The inventory, trade, quest and talent
+commands are part 2; others (loot, mail, bank, guild, LFG, crafting, glyphs, pets,
+battlegrounds) come with the phases that port those systems.
