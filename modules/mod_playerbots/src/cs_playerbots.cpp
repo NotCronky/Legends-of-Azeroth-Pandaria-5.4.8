@@ -29,8 +29,8 @@ public:
     {
         static std::vector<ChatCommand> commandTable =
         {
-            { "npcbot", &HandlePlayerbotCommand, rbac::RBAC_PERM_COMMAND_NPCBOT, Trinity::ChatCommands::Console::Yes },
-            { "pmon",   &HandlePerfMonCommand,   rbac::RBAC_PERM_COMMAND_PMON,   Trinity::ChatCommands::Console::Yes },
+            { "playerbots", &HandlePlayerbotCommand, rbac::RBAC_PERM_COMMAND_PLAYERBOTS, Trinity::ChatCommands::Console::Yes },
+            { "pmon",       &HandlePerfMonCommand,   rbac::RBAC_PERM_COMMAND_PMON,       Trinity::ChatCommands::Console::Yes },
         };
         return commandTable;
     }

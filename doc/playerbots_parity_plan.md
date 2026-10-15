@@ -355,3 +355,23 @@ themselves still need testing in game.
 - `s vendor` and auto-equip of upgrades: need the item usage value (Phase 2).
 - Outfits, the bank, opening lootable items (`u` refuses them; looting is Phase 2),
   quest travel detail, `talents` premade links and glyphs.
+
+## Bot management commands (2026-10-15)
+
+The GM command is now `.playerbots` (it was `.npcbot`; same RBAC permission, 1344).
+
+| Command | Action |
+|---|---|
+| `.playerbots list` | Your bots (`+`) and the other characters on your account (`-`) |
+| `.playerbots add NAME[,NAME...]` | Log in characters from your account, or a guild member's character while they are offline |
+| `.playerbots remove NAME[,NAME...]` | Log them out |
+| `.playerbots addclass CLASS` | Add a random-account bot of that class at your level |
+| `.playerbots setspec TAB` | Change your target bot's specialization |
+
+`add` and `remove` (alt bots) were advertised but never implemented: `ProcessBotCommand` was a stub.
+
+Addclass bots attacked everything because `OnBotLogin` set their strategies before adding them to the
+master's group: as ungrouped bots from a random-bot account they got the solo `grind` strategy, and nothing
+reset it once they joined. Strategies are now set after the bot joins, and bots with a real-player master never
+get the solo strategies. Addclass setup (level, spec, talents, gear) also moved from a detached thread, which
+changed the bot while it was in the world and sometimes teleported it away, into the login callback.

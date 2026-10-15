@@ -501,14 +501,12 @@ void PlayerbotHolder::OnBotLogin(Player* const bot)
         }
     }
 
-    group = bot->GetGroup();
-    if (group)
+    // A new addclass bot: the master's level, a spec, talents and gear
+    if (addclassPending.erase(bot->GetGUID()))
     {
-        botAI->ResetStrategies();
-    }
-    else
-    {
-        botAI->ResetStrategies();
+        sRandomPlayerbotMgr->SetValue(bot, "level", master->GetLevel());
+        BotFactory factory(bot, master->GetLevel());
+        factory.Randomize(false);
     }
 
     if (master && !master->HasUnitState(UNIT_STATE_IN_FLIGHT))
@@ -551,6 +549,10 @@ void PlayerbotHolder::OnBotLogin(Player* const bot)
         sGroupMgr->AddGroup(newGroup);
         newGroup->AddMember(bot);
     }
+
+    // Strategies depend on the group: before joining, a bot from a random-bot account would get the solo
+    // "grind" strategy and attack everything nearby
+    botAI->ResetStrategies();
 
     if (master)
     {
@@ -644,9 +646,48 @@ void PlayerbotHolder::OnBotLogin(Player* const bot)
     }*/
 }
 
-std::string const PlayerbotHolder::ProcessBotCommand(std::string const /*cmd*/, ObjectGuid /*guid*/, ObjectGuid /*masterguid*/,
-    bool /*admin*/, uint32 /*masterAccountId*/, uint32 /*masterGuildId*/)
+std::string const PlayerbotHolder::ProcessBotCommand(std::string const cmd, ObjectGuid guid, ObjectGuid masterguid,
+    bool /*admin*/, uint32 masterAccountId, uint32 masterGuildId)
 {
+    std::string name;
+    if (!guid || !sCharacterCache->GetCharacterNameByGuid(guid, name))
+        return "character not found";
+
+    if (guid == masterguid)
+        return "you can't add yourself";
+
+    if (cmd == "add")
+    {
+        if (GetPlayerBot(guid) || botLoading.count(guid))
+            return name + " is already your bot";
+
+        if (ObjectAccessor::FindConnectedPlayer(guid))
+            return name + " is already online";
+
+        // Characters on the master's account or in the master's guild, as HandlePlayerBotLoginCallback allows
+        uint32 const accountId = sCharacterCache->GetCharacterAccountIdByGuid(guid);
+        bool const sameAccount = accountId == masterAccountId;
+        bool const sameGuild = masterGuildId && sCharacterCache->GetCharacterGuildIdByGuid(guid) == masterGuildId;
+        if (!sameAccount && !sameGuild)
+            return "you may only add characters from your account or guild";
+
+        // A guild member's character can't be a bot while they are playing: that would be a second session on their account
+        if (!sameAccount && sWorld->FindSession(accountId))
+            return "its owner is online";
+
+        AddPlayerBot(guid, masterAccountId);
+        return "adding " + name;
+    }
+
+    if (cmd == "remove")
+    {
+        if (!GetPlayerBot(guid))
+            return name + " is not your bot";
+
+        LogoutPlayerBot(guid);
+        return "removing " + name;
+    }
+
     return "unknown command";
 }
 
@@ -689,10 +730,12 @@ std::vector<std::string> PlayerbotHolder::HandlePlayerbotCommand(char const* arg
 {
     std::vector<std::string> messages;
 
-    if (!*args)
+    if (!*args || !master)
     {
-        messages.push_back("usage: list/reload/tweak/self or add/init/remove PLAYERNAME\n");
-        messages.push_back("usage: addclass CLASSNAME");
+        messages.push_back("usage: .playerbots list");
+        messages.push_back("usage: .playerbots add/remove NAME[,NAME...] (characters on your account or in your guild)");
+        messages.push_back("usage: .playerbots addclass CLASS");
+        messages.push_back("usage: .playerbots setspec TAB (on your target)");
         return messages;
     }
 
@@ -700,7 +743,38 @@ std::vector<std::string> PlayerbotHolder::HandlePlayerbotCommand(char const* arg
     char* charname = strtok(nullptr, " ");
     if (!cmd)
     {
-        messages.push_back("usage: list/reload/tweak/self or add/init/remove PLAYERNAME or addclass CLASSNAME");
+        messages.push_back("usage: .playerbots list, add/remove NAME, addclass CLASS or setspec TAB");
+        return messages;
+    }
+
+    if (!strcmp(cmd, "list"))
+    {
+        messages.push_back(ListBots(master));
+        return messages;
+    }
+
+    bool const add = !strcmp(cmd, "add") || !strcmp(cmd, "login");
+    if (add || !strcmp(cmd, "remove") || !strcmp(cmd, "logout"))
+    {
+        if (!charname)
+        {
+            messages.push_back(std::string("usage: .playerbots ") + cmd + " NAME[,NAME...]");
+            return messages;
+        }
+
+        for (std::string name : split(charname, ','))
+        {
+            if (!normalizePlayerName(name))
+            {
+                messages.push_back("invalid name");
+                continue;
+            }
+
+            ObjectGuid const guid = sCharacterCache->GetCharacterGuidByName(name);
+            std::string const result = ProcessBotCommand(add ? "add" : "remove", guid, master->GetGUID(), false,
+                master->GetSession()->GetAccountId(), master->GetGuildId());
+            messages.push_back(name + ": " + result);
+        }
         return messages;
     }
 
@@ -810,26 +884,9 @@ std::vector<std::string> PlayerbotHolder::HandlePlayerbotCommand(char const* arg
             if (ObjectAccessor::FindConnectedPlayer(guid))
                 continue;
 
+            // Levelled and geared to the master in OnBotLogin, on the world thread
+            addclassPending.insert(guid);
             AddPlayerBot(guid, master->GetSession()->GetAccountId());
-            // ugly
-            std::thread([this, master, guid]
-            {
-                Player* bot = nullptr;
-                int max_try = 100;
-                do
-                {
-                    std::this_thread::sleep_for(std::chrono::milliseconds(120));
-                    bot = ObjectAccessor::FindConnectedPlayer(guid);
-                    if (bot) break;
-                    --max_try;
-                } while (bot == nullptr && max_try > 0);
-                if (!bot) return;
-                sRandomPlayerbotMgr->SetValue(bot, "level", master->GetLevel());
-                sRandomPlayerbotMgr->Randomize(bot);
-                BotFactory factory(bot, bot->GetLevel());
-                factory.InitTalentsTree(true);
-                factory.InitEquipment(true);
-            }).detach();
             
             messages.push_back("Add class " + std::string(charname));
             return messages;
@@ -895,18 +952,18 @@ std::string const PlayerbotHolder::ListBots(Player* master)
         classes[name] = classNames[bot->GetClass()];
     }
 
-    /*if (master)
+    // Characters on the master's account that could be added
+    if (master)
     {
-        QueryResult results = CharacterDatabase.Query("SELECT class, name FROM characters WHERE account = {}",
-            master->GetSession()->GetAccountId());
-        if (results)
+        if (QueryResult results = CharacterDatabase.PQuery("SELECT class, name FROM characters WHERE account = {}",
+            master->GetSession()->GetAccountId()))
         {
             do
             {
                 Field* fields = results->Fetch();
-                uint8 cls = fields[0].Get<uint8>();
-                std::string const name = fields[1].Get<std::string>();
-                if (bots.find(name) == bots.end() && name != master->GetSession()->GetPlayerName())
+                uint8 cls = fields[0].GetUInt8();
+                std::string const name = fields[1].GetString();
+                if (bots.find(name) == bots.end() && name != master->GetName())
                 {
                     names.push_back(name);
                     online[name] = "-";
@@ -914,7 +971,7 @@ std::string const PlayerbotHolder::ListBots(Player* master)
                 }
             } while (results->NextRow());
         }
-    }*/
+    }
 
     std::sort(names.begin(), names.end());
 

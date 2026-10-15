@@ -96,7 +96,7 @@ bool TalentsAction::SwitchSpec(std::string const& name)
             return false;
         }
 
-        // As the .npcbot setspec command does, keeping the gear
+        // As the .playerbots setspec command does, keeping the gear
         bot->ResetTalents(true, true, true);
         WorldPacket packet(CMSG_SET_PRIMARY_TALENT_TREE, 4);
         packet << uint32(tab);

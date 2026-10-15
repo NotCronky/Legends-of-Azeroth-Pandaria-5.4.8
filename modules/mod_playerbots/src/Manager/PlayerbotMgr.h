@@ -61,6 +61,8 @@ protected:
 
     PlayerBotMap playerBots;
     std::unordered_set<ObjectGuid> botLoading;
+    // addclass bots still to be levelled and geared when they log in
+    std::unordered_set<ObjectGuid> addclassPending;
 };
 
 class PlayerbotMgr : public PlayerbotHolder

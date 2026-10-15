@@ -565,8 +565,8 @@ void AiFactory::AddDefaultNonCombatStrategies(Player* player, PlayerbotAI* const
         nonCombatEngine->addStrategiesNoInit("nc", "chat", "follow", "default", "buff", nullptr);
     }
 
-    // Random bots that aren't following anyone live on their own
-    if (sRandomPlayerbotMgr->IsRandomBot(player) && !player->InBattleground() &&
+    // Random bots that aren't following anyone live on their own. Bots a player added (addclass) follow that player
+    if (sRandomPlayerbotMgr->IsRandomBot(player) && !player->InBattleground() && !facade->HasRealPlayerMaster() &&
         (!player->GetGroup() || player->GetGroup()->GetLeaderGUID() == player->GetGUID()))
     {
         nonCombatEngine->addStrategy("grind", false);

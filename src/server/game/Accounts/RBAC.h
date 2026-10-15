@@ -1014,7 +1014,7 @@ namespace rbac
         RBAC_PERM_COMMAND_WARDEN_INFO                            = 1341,
         RBAC_PERM_COMMAND_WARDEN                                 = 1342,
         RBAC_PERM_COMMAND_HELLO                                  = 1343,
-        RBAC_PERM_COMMAND_NPCBOT                                  = 1344,
+        RBAC_PERM_COMMAND_PLAYERBOTS                              = 1344,
         RBAC_PERM_COMMAND_PMON                                    = 1345,
         //
         // IF YOU ADD NEW PERMISSIONS, ADD THEM IN MASTER BRANCH AS WELL!
