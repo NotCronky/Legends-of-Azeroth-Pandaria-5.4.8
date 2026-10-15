@@ -1,0 +1,238 @@
+# Playerbots: Audit and Parity Plan
+
+Comparison of `modules/mod_playerbots` (MoP 5.4.8) against AzerothCore
+[mod-playerbots](https://github.com/mod-playerbots/mod-playerbots) (WotLK 3.3.5,
+checkout dated 2026-09-20), and a plan to bring the MoP bots to parity.
+
+Audit date: 2026-10-15.
+
+## Summary
+
+The MoP module is the core engine (combat and follow) plus partly updated class
+rotations. Most of what makes the AzerothCore bots feel alive was either never
+ported or is compiled but never switched on.
+
+## Audit
+
+### Size
+
+| | AzerothCore | MoP | MoP as a share |
+|---|---|---|---|
+| Lines of code | 253k | 47k | 19% |
+| Generic actions | 200 | 31 | 16% |
+| Generic triggers | 185 | 64 | 35% |
+| Generic strategies | 84 | 20 | 24% |
+| Chat commands | 115 | 0 | 0% |
+| Game-event (packet) handlers | 60 actions, 56 triggers | 5 actions, 7 triggers | about 10% |
+| Dungeon / raid / PvP strategies | 20 dungeons, 19 raids, battlegrounds | none | 0% |
+| Config options the code actually reads | ~all | 80 of 511 | — |
+
+### Why random bots stand around doing nothing
+
+`AiFactory::AddDefaultNonCombatStrategies` gives every random bot the
+out-of-combat strategies `nc`, `food`, `chat`, `quest`, `loot`, `gather`, `duel`,
+`buff`, `mount` and `emote`. None of these are registered in the MoP
+`StrategyContext`. `NamedObjectContext::create` returns `nullptr` for unknown
+names without logging anything. So out of combat, a random bot only says hello,
+follows, or idles.
+
+### Built but switched off
+
+- **Wandering and grinding:** the code for bots to grind, walk to innkeepers and
+  wander between NPCs exists in `src/strategy/RPG/`
+  (`NewRpgStrategy`, `NewRpgGoGrindAction`, `NewRpgGoInnKeeperAction`,
+  `NewRpgMoveRandomAction`, `NewRpgMoveNpcAction`), but every function body is
+  commented out and nothing is registered in any context. It is a stub, not a
+  working feature.
+- **Dead config options:** about 430 of the 511 `AiPlayerbot.*` settings in
+  `playerbots.conf.dist` were copied from AzerothCore and nothing reads them.
+  Only 80 are read in `PlayerbotAIConfig.cpp`.
+- **Travel tables:** the `playerbots_travelnode*` tables (about 70 MB) are
+  WotLK map data. No MoP code uses them; only `Travel/WorldPosition` exists.
+
+### Bot creation
+
+- `BotFactory::Randomize` gives new random bots a spec, a pet and gold, but no
+  talents or gear. `InitTalentsTree` and `InitEquipment` only run from the GM
+  `addclass` command (`PlayerbotMgr`) and from
+  `AutoMaintenanceOnLevelupAction`.
+- AzerothCore's `PlayerbotFactory` also sets up glyphs, skills, mounts,
+  consumables, reagents, bags, professions, reputation and guilds. MoP does none
+  of these.
+- `InitTalentsTree` picks a spec with `rand() % 3`, so druids can never roll their
+  4th spec (Guardian).
+- **Monk is not supported.** `RandomPlayerbotMgr` skips class 10, and there are no
+  Monk strategies. Spec detection (`AiFactory`, `GetSpecialization()`) is MoP-aware
+  and already maps the Monk specs.
+
+### Class rotations
+
+Judged by which spell names each class's actions use.
+
+| State | Classes |
+|---|---|
+| Mostly MoP | Warlock, Warrior |
+| About half updated | Mage |
+| Mostly WotLK spells that don't exist in 5.4.8 | Priest (Lesser Heal, Divine Spirit), Druid (Dire Bear Form, Tree of Life), Hunter (Aspect of the Viper; DPS strategy only), Shaman (Totem of Wrath, Flametongue Totem), Paladin (old auras), Rogue (no Combat/Subtlety strategies), Death Knight (Blood Strike, Hungering Cold, Unbreakable Armor) |
+| Missing | Monk |
+
+### Talking to bots
+
+There is no whisper or party command handling. The only control is the GM
+`.npcbot` command (`addclass`, `addspec`, `setspec`). Players can't tell a bot to
+attack, loot, trade, equip or stay.
+
+## Plan
+
+Two principles:
+
+- **Port, don't copy.** AzerothCore runs on a WotLK 3.3.5 core. This core differs
+  in packets, talents (tiers instead of trees), glyphs, stats (mastery, no armor
+  penetration) and spell IDs. Each AzerothCore system has to be adapted.
+- **Order by what players notice in game,** cheapest big wins first.
+
+### Phase 0: make the existing code work (days)
+
+1. Register the wandering/grinding strategy (`NewRpgStrategy`) and its actions,
+   and make it the default out-of-combat behaviour for random bots.
+2. Make `AiFactory` stop requesting strategies that don't exist: implement them in
+   later phases or remove them. Log a warning in `NamedObjectContext::create` when
+   an unknown name is requested, so these gaps stop being silent.
+3. Run talent and gear setup when random bots are created. Fix the druid spec roll.
+4. Add a startup check that every spell name in each class strategy exists in this
+   client's spell data, and log the ones that don't. That list becomes the to-do
+   list for Phase 3.
+5. Trim `playerbots.conf.dist` to the options the code reads.
+
+### Phase 1: chat commands (1–2 weeks)
+
+Port AzerothCore's chat command layer: `ChatActionContext`, `ChatTriggerContext`
+and `ChatCommandHandlerStrategy`. Start with the everyday commands: follow, stay,
+attack, flee, loot, summon, stats, quests, equip, sell, trade, talents and the
+strategy toggles (`co` / `nc`). This is the biggest usability gap for players
+grouping with bots.
+
+### Phase 2: upkeep (2–3 weeks)
+
+1. Looting and rolling, eating and drinking, potions, buffs, mounts, and repairing
+   and selling at vendors.
+2. Gear choice: port AzerothCore's stat-weight system (`Mgr/Item`), adjusted for
+   MoP stats (mastery; hit, expertise and haste caps; reforging can wait), so bots
+   equip upgrades.
+3. Talents and glyphs: MoP talents (6 tiers with 3 choices each, picked per spec
+   from templates) and MoP glyphs (major and minor).
+
+### Phase 3: class rotations for 5.4.8 (3–5 weeks, can run alongside other phases)
+
+1. Use the missing-spell list from Phase 0 to rewrite Priest, Druid, Shaman,
+   Hunter, Paladin, Rogue and Death Knight around their 5.4.8 abilities. Add the
+   missing specs (Hunter BM/MM/SV, Rogue Combat/Subtlety).
+2. Write Monk from scratch (Brewmaster, Mistweaver, Windwalker) using the existing
+   spec mapping, then remove the `claz == 10` skip in `RandomPlayerbotMgr` so random
+   Monk bots get created.
+3. Adopt AzerothCore's per-class folder layout (`Ai/Class/<Class>/...`) while doing
+   this, so later ports line up.
+
+### Phase 4: life in the world (3–4 weeks)
+
+1. Questing: accept, track, complete and hand in quests, and share them (the
+   packet-driven quest flow from AzerothCore's `WorldPacketActionContext`).
+2. Travel: flight paths, hearthstone, and travelling between zones. Either
+   regenerate the travel-node data for MoP maps (including Pandaria, map 870), or
+   skip the node graph and rely on mmaps pathfinding plus flight paths.
+3. Guilds and LFG queueing. Auction house and mail are optional.
+
+### Phase 5: group content (ongoing)
+
+1. Generic dungeon behaviour first (pulling, staying out of bad ground, focusing
+   marked targets), then specific scripts for the Pandaria 5-mans.
+2. AzerothCore's dungeon and raid scripts are for WotLK and TBC instances. They are
+   useful as templates but only matter for old content.
+3. Battlegrounds: port Warsong Gulch, Arathi Basin, Alterac Valley and Eye of the
+   Storm from AzerothCore, then add the MoP ones (Temple of Kotmogu, Silvershard
+   Mines, Deepwind Gorge).
+
+## Expectations
+
+Phases 0–2 are what make the bots feel on par in everyday play: roughly 1–1.5
+months of focused work. Full parity, including group-content scripts, is much
+longer. AzerothCore's 253k lines represent years of work, and most of its instance
+scripts don't apply to MoP.
+
+## Phase 0 results (2026-10-15)
+
+### Done
+
+- **Missing names no longer fail silently or crash.** `AiObjectContext` logs each
+  unregistered strategy, action, trigger or value once per class. `GetValue` returns a
+  per-bot default value instead of `nullptr` for unregistered values; 22 value names were
+  used without being registered, so code reaching them (for example the spirit-healer path
+  in `ReviveFromCorpseAction`) used to dereference a null pointer.
+- **Random bots live on their own.** The RPG strategy is ported onto this module's data
+  (farming spots, plus a new innkeeper cache loaded from the world DB) and registered with
+  its actions, triggers and the `possible rpg targets` and `nearest npcs` values. Random bots
+  that aren't following anyone get `grind` (attack nearby mobs) plus `new rpg`, or
+  `move random` when `AiPlayerbot.EnableNewRpgStrategy = 0`.
+  `AiPlayerbot.RandomBotNonCombatStrategies` is now applied. Most zones have no farming-spot
+  data, so bots there wander and grind locally. Travelling states give up after 10 minutes.
+- **`AiFactory` no longer requests strategies that exist for no class**:
+  `food`, `chat`, `quest`, `loot`, `gather`, `duel`, `mount`, `emote` (non-combat),
+  `racials`, `cast time`, `duel`, `avoid aoe` (combat), `chat` (dead).
+- **Random bot creation** now sets talents and gear (`InitTalentsTree`, `InitEquipment`).
+  With no premade link configured, bots pick a random talent in each unlocked tier. Druids
+  can roll all four specs. Talents are checked by spell, as `Player::LearnTalent` stores them.
+- **Data race fixed:** `GetCityForPlayer` and `GetFarmZoneForPlayer` shuffled the shared
+  caches in place while bots update on map threads; they now shuffle local index lists.
+- **Config trimmed** from 517 to 116 settings: only options the code reads remain.
+  `RandomBotMaxLevel` default raised from 80 to 90. The WotLK talent links were removed;
+  they used keys the code never read.
+- **Spell check:** the first bot of each class to log in reports cast actions whose spell
+  this class can't learn in the client (`Utils/SpellNameAudit.cpp`).
+
+### Findings for later phases
+
+**Hunter bots have no class AI.** `HunterAiObjectContext`'s constructor has all four
+registrations commented out, so hunters run on generic strategies only.
+
+**Monk bots are created but have no class context**, so they also run on generic
+strategies (Phase 3).
+
+**Spell check output** (cast actions whose spell the class can't learn in 5.4.8; bots look
+spells up by exact lowercase name, so renamed abilities such as `anti magic shell` vs
+"Anti-Magic Shell" count too). Some warlock demons granted by Grimoire of Supremacy may be
+false positives.
+
+| Class | Dead / total | Spells |
+|---|---|---|
+| Druid | 23 / 82 | abolish poison, bash, cancel tree form, caster form, claw, cower, cure poison, demoralizing roar, dire bear form, entangling roots on cc, faerie fire (feral), feral charge - bear, feral charge - cat, hibernate on cc, insect swarm, mangle (bear), mangle (cat), omen of clarity, remove curse, swipe (bear), swipe (cat), thorns, tree of life |
+| Warlock | 19 / 77 | banish on cc, chaos wave, demonic empowerment, doom, fear on cc, grimoire of supremacy, hand of guldan, immolation aura, soul burn, soul link, summon abyssal, summon fel imp, summon observer, summon shivarra, summon terrorguard, summon voidlord, summon wrathguard, touch of chaos, void ray |
+| Priest | 18 / 82 | abolish disease, chastise, consume magic, cure disease, divine spirit, elune's grace, feedback, hex of weakness, lesser heal, mana burn, mind soothe, prayer of fortitude, prayer of spirit, shadow protection, shadowguard, starshards, symbol of hope, touch of weakness |
+| Paladin | 13 / 60 | concentration aura, crusader aura, divine illumination, divine sacrifice, hand of reckoning, holy shield, judgement, purify, retribution aura, righteous defense, sanctity aura, shield of righteousness, turn undead |
+| Shaman | 11 / 62 | cure disease, cure poison, flametongue totem, grace of air totem, lesser healing wave, mana spring totem, strength of earth totem, totem of wrath, water breathing, windfury totem, wrath of air totem |
+| Death Knight | 10 / 48 | anti magic shell, anti magic zone, death rune mastery, deathchill, ghoul frenzy, hungering cold, improved icy talons, killing machine, mark of blood, unbreakable armor |
+| Rogue | 2 / 30 | hunger for blood, riposte |
+| Warrior | 1 / 46 | dragonroar |
+| Mage | 1 / 43 | fingers of frost |
+| Hunter, Monk | — | no class actions (see above) |
+
+**Unregistered names referenced by class strategies** (from the runtime warnings). Many
+class rotations reference triggers that don't exist, so those branches never fire:
+
+- Every class: actions `combat formation move`, `stay line`; triggers `combat stuck`,
+  `mounted`.
+- Priest: triggers `shadow word: pain`, `shadow word: pain on attacker`, `vampiric touch`,
+  `vampiric touch on attacker`, `devouring plague`, `shadowfiend`, `power infusion`,
+  `inner fire`, `holy fire`, `dispel magic`, party buff and cure triggers.
+- Druid: form, eclipse and combo-point triggers (`cat form`, `eclipse (solar)`,
+  `eclipse (lunar)`, `combo points available`, `rake`, `savage roar`, `moonfire`,
+  `insect swarm`, `mark of the wild`, ...).
+- Shaman: every totem and weapon-imbue trigger, shields, `flame shock`, `purge`,
+  `wind shear`, `bloodlust`/`heroism`, cleanse and cure triggers.
+- Paladin: aura, blessing, cleanse and `hammer of justice` triggers; actions
+  `judgement of wisdom`, `seal of corruption`, `word of glory on party`.
+- Rogue: `slice and dice`, `kick`, `expose armor`, combo-point and poison triggers.
+- Mage: `combustion`, `mirror image`, `arcane blast stack`, ward triggers; actions
+  `frost bomb`, `living bomb on attackers`, `invisibility`, `shoot`.
+- Warlock: `amplify curse`, `no healthstone`, `life tap glyph buff`; action `howl of terror`.
+- Death Knight: `bone shield`, `horn of winter`. Warrior: `demoralizing shout`; action
+  `dragon_roar`.
