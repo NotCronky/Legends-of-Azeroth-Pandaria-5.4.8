@@ -26,8 +26,18 @@
 #include "Authentication/AuthCrypt.h"
 #include "CharacterHandler.h"
 
-#include <boost/filesystem.hpp>
+#include <atomic>
+#include <thread>
 #include <vector>
+
+#include <boost/filesystem.hpp>
+
+namespace
+{
+    // The thread running World::Update. Sessions are also updated on map threads, where a bot can't safely be
+    // moved between maps
+    std::atomic<std::thread::id> worldThreadId;
+}
 #include <future>
 #include <unordered_set>
 #include <random>
@@ -144,12 +154,19 @@ public:
 
     void OnPlayerbotUpdate(uint32 diff) override
     {
+        worldThreadId = std::this_thread::get_id();
         sRandomPlayerbotMgr->UpdateAI(diff);
         sRandomPlayerbotMgr->UpdateSessions();
     }
 
     void OnPlayerbotUpdateSessions(Player* player) override
     {
+        // WorldSession::Update runs on the world thread and, for players in a map, on that map's thread. Finishing a
+        // bot's teleport adds it to its destination map (a graveyard outside the dungeon, say), which may be another
+        // map updating on another thread at the same time: only do it on the world thread, while maps are idle
+        if (std::this_thread::get_id() != worldThreadId.load())
+            return;
+
         if (player)
             if (PlayerbotMgr* playerbotMgr = GET_PLAYERBOT_MGR(player))
                 playerbotMgr->UpdateSessions();
