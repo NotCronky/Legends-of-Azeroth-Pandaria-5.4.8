@@ -11,10 +11,12 @@
 #include "DpsAssistStrategy.h"
 #include "FleeStrategy.h"
 #include "FollowMasterStrategy.h"
+#include "GrindingStrategy.h"
 #include "GuardStrategy.h"
 #include "GroupStrategy.h"
 #include "MeleeCombatStrategy.h"
 #include "MoveFromGroupStrategy.h"
+#include "NewRpgStrategy.h"
 #include "TankAssistStrategy.h"
 #include "ThreatStrategy.h"
 #include "HelloStrategy.h"
@@ -44,11 +46,17 @@ public:
         creators["threat"] = &StrategyContext::threat;
         // -- temp
         creators["say hello"] = &StrategyContext::say_hello;
+        creators["new rpg"] = &StrategyContext::new_rpg;
+        creators["grind"] = &StrategyContext::grind;
+        creators["move random"] = &StrategyContext::move_random;
     }
 
 private:
     // -- temp
     static Strategy* say_hello(PlayerbotAI* botAI) { return new HelloStrategy(botAI); }
+    static Strategy* new_rpg(PlayerbotAI* botAI) { return new NewRpgStrategy(botAI); }
+    static Strategy* grind(PlayerbotAI* botAI) { return new GrindingStrategy(botAI); }
+    static Strategy* move_random(PlayerbotAI* botAI) { return new MoveRandomStrategy(botAI); }
     // --
     
     static Strategy* world_packet(PlayerbotAI* botAI) { return new WorldPacketHandlerStrategy(botAI); }

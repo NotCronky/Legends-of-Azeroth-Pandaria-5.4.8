@@ -26,6 +26,8 @@ protected:
     const int32 statusNearNpcDuration = 5 * 60 * 1000;
     const int32 statusNearRandomDuration = 5 * 60 * 1000;
     const int32 statusRestDuration = 30 * 1000;
+    // Give up on a far-away destination that can't be reached
+    const uint32 statusGoTimeout = 10 * 60 * 1000;
     WorldPosition SelectRandomGrindPos();
     WorldPosition SelectRandomInnKeeperPos();
 };
@@ -69,7 +71,7 @@ protected:
 class NewRpgMoveNpcAction : public MovementAction
 {
 public:
-    NewRpgMoveNpcAction(PlayerbotAI* botAI) : MovementAction(botAI, "new rpg move npcs") {}
+    NewRpgMoveNpcAction(PlayerbotAI* botAI) : MovementAction(botAI, "new rpg move npc") {}
     bool Execute(Event event) override;
 protected:
     const uint32 stayTime = 8 * 1000;

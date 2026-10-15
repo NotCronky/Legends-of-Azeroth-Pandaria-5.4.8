@@ -5,6 +5,9 @@
 
 #include "AiObjectContext.h"
 
+#include <mutex>
+#include <set>
+
 #include "Helper.h"
 #include "ActionContext.h"
 
@@ -99,6 +102,9 @@ void AiObjectContext::Load(std::vector<std::string> data)
 Strategy* AiObjectContext::GetStrategy(std::string const name)
 {
     Strategy* strategy = strategyContexts.GetContextObject(name, botAI);
+    if (!strategy)
+        LogMissing("strategy", name);
+
     return strategy;
 }
 
@@ -110,18 +116,45 @@ std::set<std::string> AiObjectContext::GetSiblingStrategy(std::string const name
 Trigger* AiObjectContext::GetTrigger(std::string const name)
 {
     Trigger* trigger = triggerContexts.GetContextObject(name, botAI);
+    if (!trigger)
+        LogMissing("trigger", name);
+
     return trigger;
 }
 
 Action* AiObjectContext::GetAction(std::string const name)
 {
     Action* action = actionContexts.GetContextObject(name, botAI);
+    if (!action)
+        LogMissing("action", name);
+
     return action;
 }
 
 UntypedValue* AiObjectContext::GetUntypedValue(std::string const name)
 {
-    return valueContexts.GetContextObject(name, botAI);
+    UntypedValue* value = valueContexts.GetContextObject(name, botAI);
+    if (!value)
+        LogMissing("value", name);
+
+    return value;
+}
+
+void AiObjectContext::LogMissing(char const* type, std::string const& name) const
+{
+    static std::mutex lock;
+    static std::set<std::string> logged;
+
+    // "name::qualifier" objects share one registration, so report the base name only
+    std::string const baseName = name.substr(0, name.find("::"));
+    Player* bot = botAI ? botAI->GetBot() : nullptr;
+    std::string const className = bot ? ClassToString((Classes)bot->GetClass()) : "unknown";
+
+    std::lock_guard<std::mutex> guard(lock);
+    if (!logged.insert(std::string(type) + "|" + baseName + "|" + className).second)
+        return;
+
+    TC_LOG_ERROR("playerbots", "Playerbot {} '{}' is not registered for class {}", type, baseName, className);
 }
 
 std::set<std::string> AiObjectContext::GetValues() { return valueContexts.GetCreated(); }

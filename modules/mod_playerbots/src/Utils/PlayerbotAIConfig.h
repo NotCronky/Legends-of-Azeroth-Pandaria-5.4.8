@@ -50,6 +50,7 @@ public:
     bool autoSaveMana;
     uint32 saveManaThreshold;
     bool autoAvoidAoe;
+    bool enableNewRpgStrategy;
     float maxAoeAvoidRadius;
     std::set<uint32> aoeAvoidSpellWhitelist;
     bool tellWhenAvoidAoe;

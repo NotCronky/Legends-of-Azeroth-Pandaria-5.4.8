@@ -29,6 +29,8 @@ public:
 
     NextAction** getPrerequisites() override;
 
+    std::string const& GetSpellName() const { return spell; }
+
 protected:
     std::string spell;
     float range;

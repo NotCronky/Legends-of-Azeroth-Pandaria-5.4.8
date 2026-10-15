@@ -232,11 +232,8 @@ void AiFactory::AddDefaultCombatStrategies(Player* player, PlayerbotAI* const fa
 {
     if (!player->InBattleground())
     {
-        engine->addStrategiesNoInit("racials", "chat", "default", "cast time", "duel", "boost", nullptr);
-    }
-    if (sPlayerbotAIConfig->autoAvoidAoe && facade->HasRealPlayerMaster())
-    {
-        engine->addStrategy("avoid aoe", false);
+        // "racials", "chat", "cast time", "duel" and "avoid aoe" are added back as they get ported
+        engine->addStrategiesNoInit("default", "boost", nullptr);
     }
     engine->addStrategy("formation", false);
 
@@ -564,9 +561,24 @@ void AiFactory::AddDefaultNonCombatStrategies(Player* player, PlayerbotAI* const
     }
     if (!player->InBattleground())
     {
-        nonCombatEngine->addStrategiesNoInit("nc", "food", "chat", "follow", "default", "quest", "loot", "gather", "duel",
-            "buff", "mount", "emote", nullptr);
+        // "food", "chat", "quest", "loot", "gather", "duel", "mount" and "emote" are added back as they get ported
+        nonCombatEngine->addStrategiesNoInit("nc", "follow", "default", "buff", nullptr);
     }
+
+    // Random bots that aren't following anyone live on their own
+    if (sRandomPlayerbotMgr->IsRandomBot(player) && !player->InBattleground() &&
+        (!player->GetGroup() || player->GetGroup()->GetLeaderGUID() == player->GetGUID()))
+    {
+        nonCombatEngine->addStrategy("grind", false);
+
+        if (sPlayerbotAIConfig->enableNewRpgStrategy)
+            nonCombatEngine->addStrategy("new rpg", false);
+        else
+            nonCombatEngine->addStrategy("move random", false);
+
+        nonCombatEngine->ChangeStrategy(sPlayerbotAIConfig->randomBotNonCombatStrategies);
+    }
+
     nonCombatEngine->addStrategy("say hello");
 }
 
@@ -582,7 +594,7 @@ Engine* AiFactory::createNonCombatEngine(Player* player, PlayerbotAI* const faca
 void AiFactory::AddDefaultDeadStrategies(Player* player, PlayerbotAI* const facade, Engine* deadEngine)
 {
     (void)facade;  // unused and remove warning
-    deadEngine->addStrategiesNoInit("dead", "stay", "chat", "default", "follow", nullptr);
+    deadEngine->addStrategiesNoInit("dead", "stay", "default", "follow", nullptr);
 
     if (sRandomPlayerbotMgr->IsRandomBot(player) && !player->GetGroup())
     {

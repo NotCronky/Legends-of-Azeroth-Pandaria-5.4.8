@@ -10,6 +10,7 @@
 #include "PositionAction.h"
 #include "RtiAction.h"
 #include "MovementActions.h"
+#include "NewRpgAction.h"
 #include "RandomBotUpdateAction.h"
 #include "ReachTargetActions.h"
 #include "StayActions.h"
@@ -33,6 +34,12 @@ public:
         creators["sit"] = &ActionContext::sit;
 
         creators["random bot update"] = &ActionContext::random_bot_update;
+        creators["rpg status"] = &ActionContext::rpg_status;
+        creators["new rpg status update"] = &ActionContext::new_rpg_status_update;
+        creators["new rpg go grind"] = &ActionContext::new_rpg_go_grind;
+        creators["new rpg go innkeeper"] = &ActionContext::new_rpg_go_innkeeper;
+        creators["new rpg move random"] = &ActionContext::new_rpg_move_random;
+        creators["new rpg move npc"] = &ActionContext::new_rpg_move_npc;
         creators["mark rti"] = &ActionContext::mark_rti;
         creators["attack rti target"] = &ActionContext::attack_rti_target;
         creators["auto maintenance on levelup"] = &ActionContext::auto_maintenance_on_levelup;
@@ -73,6 +80,12 @@ private:
     static Action* runaway(PlayerbotAI* botAI) { return new RunAwayAction(botAI); }
 
     static Action* random_bot_update(PlayerbotAI* botAI) { return new RandomBotUpdateAction(botAI); }
+    static Action* rpg_status(PlayerbotAI* botAI) { return new TellRpgStatusAction(botAI); }
+    static Action* new_rpg_status_update(PlayerbotAI* botAI) { return new NewRpgStatusUpdateAction(botAI); }
+    static Action* new_rpg_go_grind(PlayerbotAI* botAI) { return new NewRpgGoGrindAction(botAI); }
+    static Action* new_rpg_go_innkeeper(PlayerbotAI* botAI) { return new NewRpgGoInnKeeperAction(botAI); }
+    static Action* new_rpg_move_random(PlayerbotAI* botAI) { return new NewRpgMoveRandomAction(botAI); }
+    static Action* new_rpg_move_npc(PlayerbotAI* botAI) { return new NewRpgMoveNpcAction(botAI); }
     static Action* mark_rti(PlayerbotAI* botAI) { return new MarkRtiAction(botAI); }
     static Action* attack_rti_target(PlayerbotAI* botAI) { return new AttackRtiTargetAction(botAI); }
     static Action* auto_maintenance_on_levelup(PlayerbotAI* botAI) { return new AutoMaintenanceOnLevelupAction(botAI); }

@@ -68,6 +68,16 @@ public:
         float z;
     };
 
+    struct innkeeper
+    {
+        uint32 map_id;
+        uint32 zone_id;
+        uint32 faction;
+        float x;
+        float y;
+        float z;
+    };
+
 public:
     RandomPlayerbotMgr();
     virtual ~RandomPlayerbotMgr();
@@ -123,6 +133,10 @@ public:
     void PrepareTeleportCache();
     void RandomTeleportForLevel(Player* bot);
 
+    // Read-only after PrepareTeleportCache; safe to read from bot updates on map threads
+    std::vector<farm_zone> const& GetFarmZones() const { return _farm_cache_data; }
+    std::vector<innkeeper> const& GetInnkeepers() const { return _innkeeper_cache_data; }
+
 protected:
     void OnBotLoginInternal(Player* const bot) override;
 
@@ -154,6 +168,7 @@ private:
     std::map<uint8, std::vector<ObjectGuid>> _addclassCache;
     std::vector<city> _city_cache_data;
     std::vector<farm_zone> _farm_cache_data;
+    std::vector<innkeeper> _innkeeper_cache_data;
 
     std::vector<uint32> _currentBots;
 };

@@ -159,6 +159,8 @@ void BotFactory::Randomize(bool incremental)
         }
     }
 
+    InitTalentsTree(false);
+    InitEquipment(incremental);
     InitPet();
  
     bot->SetMoney(urand(level * 100000, level * 5 * 100000));
@@ -350,7 +352,17 @@ void BotFactory::InitTalentsTree(bool reset)
         // -- Select spec
         if (bot->GetLevel() >= 10)
         {
-            uint32 tab = std::rand() % 3;
+            // Druids have four specializations, every other class three
+            dbc::TalentTabs const specs = dbc::GetClassSpecializations(bot->GetClass());
+            std::vector<uint32> tabs;
+            for (uint32 i = 0; i < specs.size(); ++i)
+                if (specs[i])
+                    tabs.push_back(i);
+
+            if (tabs.empty())
+                return;
+
+            uint32 tab = tabs[urand(0, tabs.size() - 1)];
             WorldPacket p(CMSG_SET_PRIMARY_TALENT_TREE);
             p << tab;
             bot->GetSession()->HandeSetTalentSpecialization(p);
@@ -367,18 +379,44 @@ void BotFactory::InitTalentsTree(bool reset)
     if (!availablepoints || spec_tab == 99) return;
 
     const std::vector<uint16>& talents = sPlayerbotAIConfig->premadeSpecLink[bot->GetClass()][spec_tab];
-    if (talents.empty()) return;
 
-    
     std::vector<uint16> talent_to_learn;
-    for (size_t i = alreadyUsedPoints; i < talents.size() && availablepoints > 0; ++i)
+    if (!talents.empty())
     {
-        uint16 talentId = talents[i];
-        if (!bot->HasTalent(talentId, bot->GetActiveSpec()))
+        for (size_t i = alreadyUsedPoints; i < talents.size() && availablepoints > 0; ++i)
         {
+            uint16 talentId = talents[i];
+            TalentEntry const* talent = sTalentStore.LookupEntry(talentId);
+            if (talent && !bot->HasSpell(talent->SpellID))
+            {
+                learnCount++;
+                talent_to_learn.push_back(talentId);
+                availablepoints--;
+            }
+        }
+    }
+    else
+    {
+        // No premade talents configured: pick a random talent in each unlocked tier (one point per 15 levels)
+        uint32 const unlockedTiers = bot->CalculateTalentsPoints();
+        std::map<uint32, std::vector<TalentEntry const*>> classTalentsByTier;
+        for (TalentEntry const* talent : sTalentStore)
+            if (talent->PlayerClass == bot->GetClass() && talent->TierID < unlockedTiers)
+                classTalentsByTier[talent->TierID].push_back(talent);
+
+        for (auto const& [tier, tierTalents] : classTalentsByTier)
+        {
+            // learned talents are stored by spell, as in Player::LearnTalent
+            bool tierTaken = false;
+            for (TalentEntry const* talent : tierTalents)
+                if (bot->HasSpell(talent->SpellID))
+                    tierTaken = true;
+
+            if (tierTaken || tierTalents.empty())
+                continue;
+
             learnCount++;
-            talent_to_learn.push_back(talentId);
-            availablepoints--;
+            talent_to_learn.push_back(tierTalents[urand(0, tierTalents.size() - 1)]->ID);
         }
     }
     if (learnCount > 0)

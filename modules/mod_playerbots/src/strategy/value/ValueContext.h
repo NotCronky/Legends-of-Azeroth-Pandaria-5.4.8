@@ -24,6 +24,7 @@
 #include "ManaSaveLevelValue.h"
 #include "MasterTargetValue.h"
 #include "NearestUnitsValue.h"
+#include "NearestNpcsValue.h"
 #include "NearestFriendlyPlayersValue.h"
 #include "PartyMemberWithoutAuraValue.h"
 #include "PartyMemberToDispelValue.h"
@@ -92,6 +93,8 @@ public:
         creators["prioritized targets"] = &ValueContext::prioritized_targets;
         creators["possible triggers"] = &ValueContext::possible_triggers;
         creators["possible targets"] = &ValueContext::possible_targets;
+        creators["nearest npcs"] = &ValueContext::nearest_npcs;
+        creators["possible rpg targets"] = &ValueContext::possible_rpg_targets;
         creators["possible targets no los"] = &ValueContext::possible_targets_no_los;
 
         creators["position"] = &ValueContext::position;
@@ -215,6 +218,8 @@ private:
     static UntypedValue* current_target(PlayerbotAI* botAI) { return new CurrentTargetValue(botAI); }
     static UntypedValue* possible_triggers(PlayerbotAI* botAI) { return new PossibleTriggersValue(botAI); }
     static UntypedValue* possible_targets(PlayerbotAI* botAI) { return new PossibleTargetsValue(botAI); }
+    static UntypedValue* nearest_npcs(PlayerbotAI* botAI) { return new NearestNpcsValue(botAI); }
+    static UntypedValue* possible_rpg_targets(PlayerbotAI* botAI) { return new PossibleRpgTargetsValue(botAI); }
     static UntypedValue* possible_targets_no_los(PlayerbotAI* botAI) { return new PossibleTargetsValue(botAI, "possible targets", sPlayerbotAIConfig->sightDistance, true); }
     static UntypedValue* old_target(PlayerbotAI* botAI) { return new CurrentTargetValue(botAI); }
     static UntypedValue* grind_target(PlayerbotAI* botAI) { return new GrindTargetValue(botAI); }

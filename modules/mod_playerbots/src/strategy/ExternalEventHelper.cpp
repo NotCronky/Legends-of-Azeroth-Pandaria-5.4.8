@@ -47,12 +47,10 @@ void ExternalEventHelper::HandlePacket(std::map<uint16, std::string>& handlers, 
     if (name.empty())
         return;
 
+    // AiObjectContext::GetTrigger reports unregistered packet triggers once
     Trigger* trigger = aiObjectContext->GetTrigger(name);
     if (!trigger)
-    {
-        TC_LOG_ERROR("playerbots", "No trigger defined for packet: {}", name.c_str());
         return;
-    }
 
     WorldPacket p(packet);
     trigger->ExternalEvent(p, owner);

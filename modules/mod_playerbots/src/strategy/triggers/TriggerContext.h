@@ -11,6 +11,7 @@
 #include "GenericTriggers.h"
 #include "HealthTriggers.h"
 #include "RangeTriggers.h"
+#include "NewRpgTriggers.h"
 
 class PlayerbotAI;
 class TriggerContext : public NamedObjectContext<Trigger>
@@ -24,6 +25,10 @@ public:
         creators["often"] = &TriggerContext::often;
         creators["always trigger"] = &TriggerContext::always;
         creators["random bot update"] = &TriggerContext::random_bot_update_trigger;
+        creators["go grind status"] = &TriggerContext::go_grind_status;
+        creators["go innkeeper status"] = &TriggerContext::go_innkeeper_status;
+        creators["near random status"] = &TriggerContext::near_random_status;
+        creators["near npc status"] = &TriggerContext::near_npc_status;
 
         creators["target critical health"] = &TriggerContext::TargetCriticalHealth;
 
@@ -106,6 +111,10 @@ private:
     static Trigger* often(PlayerbotAI* botAI) { return new RandomTrigger(botAI, "often", 5); }
     static Trigger* always(PlayerbotAI* botAI) { return new AlwaysTrigger(botAI); }
     static Trigger* random_bot_update_trigger(PlayerbotAI* botAI) { return new RandomBotUpdateTrigger(botAI); }
+    static Trigger* go_grind_status(PlayerbotAI* botAI) { return new NewRpgStatusTrigger(botAI, NewRpgStatus::GO_GRIND); }
+    static Trigger* go_innkeeper_status(PlayerbotAI* botAI) { return new NewRpgStatusTrigger(botAI, NewRpgStatus::GO_INNKEEPER); }
+    static Trigger* near_random_status(PlayerbotAI* botAI) { return new NewRpgStatusTrigger(botAI, NewRpgStatus::NEAR_RANDOM); }
+    static Trigger* near_npc_status(PlayerbotAI* botAI) { return new NewRpgStatusTrigger(botAI, NewRpgStatus::NEAR_NPC); }
 
     static Trigger* LowHealth(PlayerbotAI* botAI) { return new LowHealthTrigger(botAI); }
     static Trigger* MediumHealth(PlayerbotAI* botAI) { return new MediumHealthTrigger(botAI); }

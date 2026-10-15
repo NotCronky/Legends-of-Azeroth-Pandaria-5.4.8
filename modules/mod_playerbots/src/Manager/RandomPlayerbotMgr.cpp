@@ -1182,6 +1182,31 @@ void RandomPlayerbotMgr::PrepareTeleportCache()
 
     TC_LOG_INFO("server.loading", ">> Loaded {} cache zone for {} farm spot", zone_count, farm_spot_count);
     TC_LOG_INFO("server.loading", ">> Loaded {} city zone", city_count);
+
+    // Innkeepers are destinations for the "new rpg" strategy
+    results = WorldDatabase.PQuery("SELECT c.map, c.zoneId, t.faction, c.position_x, c.position_y, c.position_z "
+        "FROM creature c JOIN creature_template t ON t.entry = c.id WHERE (t.npcflag & {}) != 0", uint32(UNIT_NPC_FLAG_INNKEEPER));
+    if (results)
+    {
+        do
+        {
+            Field* fields = results->Fetch();
+
+            innkeeper new_innkeeper
+            {
+                fields[0].GetUInt16(),  /* MapId */
+                fields[1].GetUInt32(),  /* ZoneId */
+                fields[2].GetUInt16(),  /* Faction */
+                fields[3].GetFloat(),   /* X */
+                fields[4].GetFloat(),   /* Y */
+                fields[5].GetFloat()    /* Z */
+            };
+
+            _innkeeper_cache_data.emplace_back(std::move(new_innkeeper));
+        } while (results->NextRow());
+    }
+
+    TC_LOG_INFO("server.loading", ">> Loaded {} innkeepers", _innkeeper_cache_data.size());
 }
 
 void RandomPlayerbotMgr::RandomTeleportForLevel(Player* bot)
@@ -1218,15 +1243,28 @@ void RandomPlayerbotMgr::RandomTeleportForLevel(Player* bot)
     }
 }
 
+namespace
+{
+    std::vector<size_t> ShuffledIndices(size_t count, std::mt19937& gen)
+    {
+        std::vector<size_t> indices(count);
+        for (size_t i = 0; i < count; ++i)
+            indices[i] = i;
+
+        std::shuffle(indices.begin(), indices.end(), gen);
+        return indices;
+    }
+}
+
 const RandomPlayerbotMgr::city* RandomPlayerbotMgr::GetCityForPlayer(Player* player)
 {
     if (_city_cache_data.empty()) return nullptr;
 
+    // Bots update on map threads: visit the shared cache in a random order without reordering it
     std::mt19937 gen(std::chrono::system_clock::now().time_since_epoch().count());
-    std::shuffle(_city_cache_data.begin(), _city_cache_data.end(), gen);
-
-    for (const auto& city_data : _city_cache_data)
+    for (size_t index : ShuffledIndices(_city_cache_data.size(), gen))
     {
+        const auto& city_data = _city_cache_data[index];
         if (player->GetLevel() < city_data.min_level || player->GetLevel() > city_data.max_level || city_data.team_disabled == player->GetTeam())
             continue;
         return &city_data;
@@ -1240,10 +1278,9 @@ const RandomPlayerbotMgr::farm_spot* RandomPlayerbotMgr::GetFarmZoneForPlayer(Pl
     if (_farm_cache_data.empty()) return nullptr;
 
     std::mt19937 gen(std::chrono::system_clock::now().time_since_epoch().count());
-    std::shuffle(_farm_cache_data.begin(), _farm_cache_data.end(), gen);
-
-    for (auto& zone : _farm_cache_data)
+    for (size_t zoneIndex : ShuffledIndices(_farm_cache_data.size(), gen))
     {
+        const auto& zone = _farm_cache_data[zoneIndex];
         if (player->GetLevel() < zone.min_level || player->GetLevel() > zone.max_level || zone.team_disabled == player->GetTeam())
             continue;
 
@@ -1273,10 +1310,9 @@ const RandomPlayerbotMgr::farm_spot* RandomPlayerbotMgr::GetFarmZoneForPlayer(Pl
             }
         }
 
-        auto& spots = zone.spots;
-        std::shuffle(spots.begin(), spots.end(), gen);
-        for (auto& spot : spots)
+        for (size_t spotIndex : ShuffledIndices(zone.spots.size(), gen))
         {
+            const auto& spot = zone.spots[spotIndex];
             if (player->GetLevel() >= spot.min_level && player->GetLevel() <= spot.max_level)
             {
                 // -- 
