@@ -98,7 +98,9 @@ public:
 
 private:
     std::map<uint16, std::string> _handlers;
-    std::stack<WorldPacket> _queue;
+    // Packets reach bots from other sessions' threads; handled in arrival order on the bot's update
+    std::queue<WorldPacket> _queue;
+    std::mutex _queueLock;
 };
 
 class PlayerbotAI : public PlayerbotAIBase
@@ -124,6 +126,8 @@ public:
     // Chat from a player to this bot (whisper, party or raid). May be called from another map's thread.
     void HandleCommand(uint32 type, std::string const& text, Player* fromPlayer);
     bool CanTakeCommandFrom(Player* fromPlayer) const;
+    // Commands that give away, sell or change the bot's items, spells or talents: master and GMs only
+    bool CanManageFor(Player* fromPlayer) const;
 
     void HandleBotOutgoingPacket(WorldPacket const& packet);
     void HandleMasterIncomingPacket(WorldPacket const& packet);

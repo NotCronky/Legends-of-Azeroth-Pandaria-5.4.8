@@ -5,11 +5,10 @@
 
 #include "ExternalEventHelper.h"
 
-//#include "ChatHelper.h"
 #include "Playerbots.h"
 #include "Trigger.h"
 
-bool ExternalEventHelper::ParseChatCommand(std::string const command, Player* owner)
+bool ExternalEventHelper::ParseChatCommand(std::string const command, Player* owner, bool trading)
 {
     // Chat text is user input: only look up names that are registered so ordinary chat isn't reported as missing
     std::set<std::string> const supported = aiObjectContext->GetSupportedTriggers();
@@ -37,12 +36,12 @@ bool ExternalEventHelper::ParseChatCommand(std::string const command, Player* ow
             return true;
     }
 
-    //if (!ChatHelper::parseable(command))
-        //return false;
+    // A shift-clicked item: say how many the bot has, and put it in an open trade
+    if (command.find("|Hitem:") == std::string::npos)
+        return false;
 
-    // Item links: item count and trade, once those commands are ported
     bool const counted = handle("c", command);
-    bool const traded = handle("t", command);
+    bool const traded = trading && handle("t", command);
     return counted || traded;
 }
 

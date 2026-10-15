@@ -23,6 +23,7 @@ public:
         creators["revive from corpse"] = &WorldPacketTriggerContext::revive_from_corpse;
 
         creators["levelup"] = &WorldPacketTriggerContext::levelup;
+        creators["trade status"] = &WorldPacketTriggerContext::trade_status;
     }
 
 private:
@@ -35,6 +36,7 @@ private:
     static Trigger* revive_from_corpse(PlayerbotAI* botAI) { return new WorldPacketTrigger(botAI, "revive from corpse"); }
 
     static Trigger* levelup(PlayerbotAI* botAI) { return new WorldPacketTrigger(botAI, "levelup"); }
+    static Trigger* trade_status(PlayerbotAI* botAI) { return new WorldPacketTrigger(botAI, "trade status"); }
 };
 
 #endif

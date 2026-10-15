@@ -26,6 +26,11 @@ void ChatCommandHandlerStrategy::InitTriggers(std::vector<TriggerNode*>& trigger
     add("attack", "attack my target");
     add("tank attack", "tank attack chat shortcut");
     add("max dps", "max dps chat shortcut");
+    add("e", "equip");
+    add("ue", "unequip");
+    add("s", "sell");
+    add("u", "use");
+    add("t", "trade");
 }
 
 // Commands whose action has the same name
@@ -40,4 +45,13 @@ ChatCommandHandlerStrategy::ChatCommandHandlerStrategy(PlayerbotAI* botAI) : Pas
     supported.push_back("stats");
     supported.push_back("rpg status");
     supported.push_back("help");
+    supported.push_back("c");
+    supported.push_back("equip");
+    supported.push_back("unequip");
+    supported.push_back("sell");
+    supported.push_back("use");
+    supported.push_back("trade");
+    supported.push_back("quests");
+    supported.push_back("spells");
+    supported.push_back("talents");
 }

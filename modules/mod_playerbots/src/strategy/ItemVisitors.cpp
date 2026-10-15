@@ -7,6 +7,29 @@
 
 #include "Playerbots.h"
 
+// Case-insensitive strstr
+char* strstri(char const* haystack, char const* needle)
+{
+    if (!*needle)
+        return (char*)haystack;
+
+    for (; *haystack; ++haystack)
+    {
+        char const* h = haystack;
+        char const* n = needle;
+        while (*h && *n && tolower((unsigned char)*h) == tolower((unsigned char)*n))
+        {
+            ++h;
+            ++n;
+        }
+
+        if (!*n)
+            return (char*)haystack;
+    }
+
+    return nullptr;
+}
+
 bool FindUsableItemVisitor::Visit(Item* item)
 {
     if (bot->CanUseItem(item->GetTemplate()) == EQUIP_ERR_OK)

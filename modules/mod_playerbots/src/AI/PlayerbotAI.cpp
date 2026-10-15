@@ -78,10 +78,16 @@ void PacketHandlingHelper::AddHandler(uint16 opcode, std::string const handler)
 
 void PacketHandlingHelper::Handle(ExternalEventHelper& helper)
 {
-    while (!_queue.empty())
+    std::queue<WorldPacket> packets;
     {
-        helper.HandlePacket(_handlers, _queue.top());
-        _queue.pop();
+        std::lock_guard<std::mutex> guard(_queueLock);
+        packets.swap(_queue);
+    }
+
+    while (!packets.empty())
+    {
+        helper.HandlePacket(_handlers, packets.front());
+        packets.pop();
     }
 }
 
@@ -93,7 +99,10 @@ void PacketHandlingHelper::AddPacket(WorldPacket const& packet)
     // assert(packet);
     // assert(packet.GetOpcode());
     if (_handlers.find(packet.GetOpcode()) != _handlers.end())
+    {
+        std::lock_guard<std::mutex> guard(_queueLock);
         _queue.push(WorldPacket(packet));
+    }
 }
 
 PlayerbotAI::PlayerbotAI()
@@ -151,6 +160,7 @@ PlayerbotAI::PlayerbotAI(Player* bot)
     botOutgoingPacketHandlers.AddHandler(SMSG_LEVELUP_INFO, "levelup");
     botOutgoingPacketHandlers.AddHandler(SMSG_GROUP_INVITE, "group invite");
     botOutgoingPacketHandlers.AddHandler(SMSG_GROUP_DESTROYED, "group destroyed");
+    botOutgoingPacketHandlers.AddHandler(SMSG_TRADE_STATUS, "trade status");
 }
 
 PlayerbotAI::~PlayerbotAI()
@@ -1147,6 +1157,11 @@ bool PlayerbotAI::CanTakeCommandFrom(Player* fromPlayer) const
     return group && group == fromPlayer->GetGroup();
 }
 
+bool PlayerbotAI::CanManageFor(Player* fromPlayer) const
+{
+    return fromPlayer && (fromPlayer == master || fromPlayer->GetSession()->GetSecurity() >= SEC_GAMEMASTER);
+}
+
 void PlayerbotAI::HandleCommands()
 {
     std::list<ChatCommandHolder> commands;
@@ -1180,7 +1195,8 @@ void PlayerbotAI::HandleCommands()
             continue;
         }
 
-        if (!helper.ParseChatCommand(holder.command, owner) && holder.type == CHAT_MSG_WHISPER)
+        if (!helper.ParseChatCommand(holder.command, owner, bot->GetTrader() == owner) &&
+            holder.type == CHAT_MSG_WHISPER)
             bot->Whisper("Unknown command: " + holder.command + ". Whisper 'help' for the list.", LANG_UNIVERSAL, owner);
     }
 }
@@ -1597,10 +1613,11 @@ bool PlayerbotAI::TellMasterNoFacing(std::string const text)
         if (!masterBotAI->IsRealPlayer())
             return false;
 
-    // Don't repeat the same line within RepeatDelay
+    // Don't repeat the same line within RepeatDelay, except in answer to a command: lists repeat headers
     time_t const now = time(nullptr);
+    bool const answering = currentChat.second > now;
     time_t& lastSaid = whispers[text];
-    if (lastSaid && (now - lastSaid) < sPlayerbotAIConfig->repeatDelay / 1000)
+    if (!answering && lastSaid && (now - lastSaid) < sPlayerbotAIConfig->repeatDelay / 1000)
         return true;
 
     lastSaid = now;

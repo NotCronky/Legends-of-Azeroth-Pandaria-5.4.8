@@ -13,6 +13,7 @@
 #include "ReleaseSpiritAction.h"
 #include "ReviveFromCorpseAction.h"
 #include "LeaveGroupAction.h"
+#include "TradeAction.h"
 
 class PlayerbotAI;
 
@@ -29,6 +30,9 @@ public:
         creators["revive from corpse"] = &WorldPacketActionContext::revive_from_corpse;
         creators["find corpse"] = &WorldPacketActionContext::find_corpse;
         creators["auto release"] = &WorldPacketActionContext::auto_release;
+
+        // trade
+        creators["trade status"] = &WorldPacketActionContext::trade_status;
     }
 
 private:
@@ -38,6 +42,7 @@ private:
     static Action* find_corpse(PlayerbotAI* botAI) { return new FindCorpseAction(botAI); }
     static Action* auto_release(PlayerbotAI* botAI) { return new AutoReleaseSpiritAction(botAI); }
     static Action* revive_from_corpse(PlayerbotAI* botAI) { return new ReviveFromCorpseAction(botAI); }
+    static Action* trade_status(PlayerbotAI* botAI) { return new TradeStatusAction(botAI); }
 };
 
 #endif

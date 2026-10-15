@@ -1,0 +1,28 @@
+/*
+ * Copyright (C) 2016+ AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license, you may redistribute it
+ * and/or modify it under version 2 of the License, or (at your option), any later version.
+ */
+
+#ifndef _PLAYERBOT_SELLACTION_H
+#define _PLAYERBOT_SELLACTION_H
+
+#include "InventoryAction.h"
+
+class Creature;
+class PlayerbotAI;
+
+// "s <items>": sell to a nearby vendor. "s gray" or "s *" sells grey items; "s <quality>" sells armor and
+// weapons of that quality or lower, "s <quality> all" every kind of item
+class SellAction : public InventoryAction
+{
+public:
+    SellAction(PlayerbotAI* botAI) : InventoryAction(botAI, "sell") {}
+
+    bool Execute(Event event) override;
+
+private:
+    Creature* FindVendor();
+    bool Sell(Creature* vendor, Item* item);
+};
+
+#endif

@@ -50,8 +50,21 @@ public:
         creators["stats"] = &ChatTriggers::command<"stats">;
         creators["rpg status"] = &ChatTriggers::command<"rpg status">;
         creators["help"] = &ChatTriggers::command<"help">;
+        creators["c"] = &ChatTriggers::command<"c">;
+        creators["e"] = &ChatTriggers::command<"e">;
+        creators["equip"] = &ChatTriggers::command<"equip">;
+        creators["ue"] = &ChatTriggers::command<"ue">;
+        creators["unequip"] = &ChatTriggers::command<"unequip">;
+        creators["s"] = &ChatTriggers::command<"s">;
+        creators["sell"] = &ChatTriggers::command<"sell">;
+        creators["u"] = &ChatTriggers::command<"u">;
+        creators["use"] = &ChatTriggers::command<"use">;
+        creators["t"] = &ChatTriggers::command<"t">;
+        creators["trade"] = &ChatTriggers::command<"trade">;
+        creators["quests"] = &ChatTriggers::command<"quests">;
+        creators["spells"] = &ChatTriggers::command<"spells">;
+        creators["talents"] = &ChatTriggers::command<"talents">;
     }
-
 };
 
 #endif

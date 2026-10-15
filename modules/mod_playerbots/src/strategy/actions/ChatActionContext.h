@@ -9,12 +9,20 @@
 #include "AttackActions.h"
 #include "ChangeStrategyAction.h"
 #include "ChatShortcutActions.h"
+#include "EquipAction.h"
 #include "HelpAction.h"
 #include "LeaveGroupAction.h"
+#include "ListQuestsAction.h"
+#include "ListSpellsAction.h"
 #include "NamedObjectContext.h"
 #include "RtiAction.h"
+#include "SellAction.h"
 #include "StatsAction.h"
 #include "SummonAction.h"
+#include "TalentsAction.h"
+#include "TellItemCountAction.h"
+#include "TradeAction.h"
+#include "UseItemAction.h"
 
 // Actions run by chat commands
 class ChatActionContext : public NamedObjectContext<Action>
@@ -39,6 +47,15 @@ public:
         creators["rti"] = &ChatActionContext::rti;
         creators["stats"] = &ChatActionContext::stats;
         creators["help"] = &ChatActionContext::help;
+        creators["c"] = &ChatActionContext::item_count;
+        creators["equip"] = &ChatActionContext::equip;
+        creators["unequip"] = &ChatActionContext::unequip;
+        creators["sell"] = &ChatActionContext::sell;
+        creators["use"] = &ChatActionContext::use;
+        creators["trade"] = &ChatActionContext::trade;
+        creators["quests"] = &ChatActionContext::quests;
+        creators["spells"] = &ChatActionContext::spells;
+        creators["talents"] = &ChatActionContext::talents;
     }
 
 private:
@@ -59,6 +76,15 @@ private:
     static Action* rti(PlayerbotAI* botAI) { return new RtiAction(botAI); }
     static Action* stats(PlayerbotAI* botAI) { return new StatsAction(botAI); }
     static Action* help(PlayerbotAI* botAI) { return new HelpAction(botAI); }
+    static Action* item_count(PlayerbotAI* botAI) { return new TellItemCountAction(botAI); }
+    static Action* equip(PlayerbotAI* botAI) { return new EquipAction(botAI); }
+    static Action* unequip(PlayerbotAI* botAI) { return new UnequipAction(botAI); }
+    static Action* sell(PlayerbotAI* botAI) { return new SellAction(botAI); }
+    static Action* use(PlayerbotAI* botAI) { return new UseItemAction(botAI); }
+    static Action* trade(PlayerbotAI* botAI) { return new TradeAction(botAI); }
+    static Action* quests(PlayerbotAI* botAI) { return new ListQuestsAction(botAI); }
+    static Action* spells(PlayerbotAI* botAI) { return new ListSpellsAction(botAI); }
+    static Action* talents(PlayerbotAI* botAI) { return new TalentsAction(botAI); }
 };
 
 #endif

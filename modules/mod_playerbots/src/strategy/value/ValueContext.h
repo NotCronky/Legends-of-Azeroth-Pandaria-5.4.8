@@ -89,6 +89,8 @@ public:
         creators["rti cc target"] = &ValueContext::rti_cc_target;
         creators["rti cc"] = &ValueContext::rti_cc;
         creators["rti"] = &ValueContext::rti;
+        creators["pending trade"] = &ValueContext::pending_trade;
+        creators["trade initiated"] = &ValueContext::trade_initiated;
 
         creators["prioritized targets"] = &ValueContext::prioritized_targets;
         creators["possible triggers"] = &ValueContext::possible_triggers;
@@ -201,6 +203,10 @@ private:
     static UntypedValue* rti_target(PlayerbotAI* botAI) { return new RtiTargetValue(botAI); }
     static UntypedValue* rti_cc_target(PlayerbotAI* botAI) { return new RtiCcTargetValue(botAI); }
     static UntypedValue* rti(PlayerbotAI* botAI) { return new RtiValue(botAI); }
+    // What "t" asked to trade before the trade window opened
+    static UntypedValue* pending_trade(PlayerbotAI* botAI) { return new ManualSetValue<std::string>(botAI, "", "pending trade"); }
+    // Whether both sides have the trade window open (items added before that don't show for the other side)
+    static UntypedValue* trade_initiated(PlayerbotAI* botAI) { return new ManualSetValue<bool>(botAI, false, "trade initiated"); }
     static UntypedValue* rti_cc(PlayerbotAI* botAI) { return new RtiCcValue(botAI); }
 
     static UntypedValue* balance(PlayerbotAI* botAI) { return new BalancePercentValue(botAI); }
