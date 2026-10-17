@@ -18,13 +18,48 @@ ported or is compiled but never switched on.
 |---|---|
 | 0: make the existing code work | Done (2026-10-15) |
 | 1: chat commands | Done (2026-10-15): chat plumbing, control commands, and item, trade, quest, spell and talent commands. Other commands come with the systems they control |
-| 2: upkeep | In progress: part 1 (looting, rolls, item usage, stat weights, upgrades) and part 2 (food, potions, vendors, mounts) done 2026-10-17; talents and glyphs to do |
+| 2: upkeep | Done (2026-10-17): looting, rolls, item usage, stat weights and upgrades (part 1); food, potions, vendors and mounts (part 2); talents and glyphs (part 3). Class buffs come with Phase 3 |
 | 3: class rotations for 5.4.8 | Not started; to-do list in the Phase 0 results |
 | 4: life in the world | Not started |
 | 5: group content | Not started |
 
-The audit below describes the module before any of this work; see the results sections at
-the end for what changed.
+## Done so far
+
+What the bots do now that they didn't when the audit was written. Details, test results and what
+was left out are in the results sections at the end.
+
+| Area | Now |
+|---|---|
+| Life out of combat | Random bots wander, grind, visit innkeepers and NPCs, loot, gather, eat and drink, repair and sell, and ride to far destinations. Bots added by a player follow that player |
+| Talking to bots | Whisper and party/raid commands: control (`follow`, `stay`, `attack`, `flee`, `summon`, ...), strategies (`co`, `nc`, `de`), items (`c`, `e`, `ue`, `s`, `u`, `t`), `quests`, `spells`, `talents`, loot (`ll`), `repair`, `stats`, `help` |
+| Managing bots | `.playerbots list`, `add`/`remove` (characters from your account or an offline guild member's), `addclass`, `setspec` |
+| Gear | MoP stat weights per specialization; new bots get the best of their gear candidates, and all bots equip the upgrades they loot or are given |
+| Loot | Corpses, chests, herbs, ore and skinning; loot strategies; need/greed/pass on group rolls |
+| Consumables | Food and drink (free with the `food` cheat, AzerothCore's default), healthstones and potions in combat; random bots are given potions for their level |
+| Mounts | Riding, flying licenses and mounts for random bots; bots mount with their master and dismount to fight |
+| Talents and glyphs | Per-specialization templates: talent columns for every tier, and the PvE major glyphs of Method's MoP Classic guides |
+| Bot creation | Talents, glyphs, gear, mounts and potions when a random bot is created or levels up; druids can be all four specializations |
+| Not yet | Class rotations for 5.4.8 (hunters have no class AI, monks none at all), class buffs, questing, travel by flight path, dungeons, battlegrounds |
+
+### Fixes along the way
+
+- Bot teleports are finished on the world thread only; they had corrupted creature event lists in
+  dungeons (a worldserver crash).
+- The bot packet queue was handled newest first and without a lock; it is now a locked FIFO.
+- Unregistered strategies, actions, triggers and values are logged instead of failing silently;
+  unregistered values no longer return null.
+- Bots added with `addclass` no longer get the solo grind strategy and attack everything.
+- Restoration shamans get the healer role; durability reads 100% for bots with no gear that wears.
+
+### Known issues
+
+- **The worldserver crashes on shutdown** with random bots online: `Map::UnloadAll` deletes a creature
+  whose chase movement still points at a removed bot (`ChaseMovementGenerator` destructor ->
+  `AbstractFollower::SetTarget`). It predates this work.
+- Group rolls, `ll`, `s vendor`, `repair`, potions in combat and mounting with a player have been built
+  and run, but not yet tested in game.
+
+The audit below describes the module before any of this work.
 
 ## Audit
 
@@ -106,7 +141,7 @@ Two principles:
   penetration) and spell IDs. Each AzerothCore system has to be adapted.
 - **Order by what players notice in game,** cheapest big wins first.
 
-### Phase 0: make the existing code work (days)
+### Phase 0: make the existing code work (days) — done
 
 1. Register the wandering/grinding strategy (`NewRpgStrategy`) and its actions,
    and make it the default out-of-combat behaviour for random bots.
@@ -119,7 +154,7 @@ Two principles:
    list for Phase 3.
 5. Trim `playerbots.conf.dist` to the options the code reads.
 
-### Phase 1: chat commands (1–2 weeks)
+### Phase 1: chat commands (1–2 weeks) — done
 
 Port AzerothCore's chat command layer: `ChatActionContext`, `ChatTriggerContext`
 and `ChatCommandHandlerStrategy`. Start with the everyday commands: follow, stay,
@@ -134,18 +169,22 @@ grouping with bots.
   `trade`, item links, `quests`, `talents`, `spells` (see "Phase 1 results, part 2").
   Loot commands wait for the Phase 2 loot port.
 
-### Phase 2: upkeep (2–3 weeks)
+### Phase 2: upkeep (2–3 weeks) — done
 
 1. Looting and rolling, eating and drinking, potions, buffs, mounts, and repairing
-   and selling at vendors. Looting and rolling are part 1, the rest part 2; class buffs come with the
+   and selling at vendors. **Done** (parts 1 and 2), except class buffs, which come with the
    Phase 3 class rewrites.
 2. Gear choice: port AzerothCore's stat-weight system (`Mgr/Item`), adjusted for
    MoP stats (mastery; hit, expertise and haste caps; reforging can wait), so bots
-   equip upgrades.
+   equip upgrades. **Done** (part 1): written for MoP rather than ported.
 3. Talents and glyphs: MoP talents (6 tiers with 3 choices each, picked per spec
-   from templates) and MoP glyphs (major and minor).
+   from templates) and MoP glyphs (major and minor). **Done** (part 3).
 
-### Phase 3: class rotations for 5.4.8 (3–5 weeks, can run alongside other phases)
+### Phase 3: class rotations for 5.4.8 (3–5 weeks, can run alongside other phases) — next
+
+Also for this phase: class buffs (only priest, mage and druid have a `buff` strategy), the `mounted`
+and `no healthstone` triggers that class strategies reference, and using the abilities the talent and
+glyph templates choose.
 
 1. Use the missing-spell list from Phase 0 to rewrite Priest, Druid, Shaman,
    Hunter, Paladin, Rogue and Death Knight around their 5.4.8 abilities. Add the
@@ -466,4 +505,36 @@ in game.
 
 - The `gold`, `health`, `mana`, `power`, `taxi` and `raid` cheats.
 - Bandages, reagents, rogue poisons and buff food.
+
+## Phase 2 results, part 3 (2026-10-17)
+
+Random bots take talents and glyphs from per-specialization templates instead of at random. Built and
+run with 50 random bots; four re-randomized bots (warrior, mage, warlock, druid) got their template's
+talent in every unlocked tier, the template's three major glyphs and three random minor glyphs of their
+class.
+
+### Done
+
+- **Talent templates:** `AiPlayerbot.PremadeSpecLink.<class>.<spec>` is now one digit per tier, the
+  column of the talent (0 to 2, left to right as in the talent window; `.` for a random one), like the
+  MoP talent calculator. The old setting was a list of talent ids in tier order, and every WotLK link had
+  been removed, so bots picked at random. Built-in templates for every specialization, checked against
+  this client's Talent.dbc, favor passive talents and talents that replace a spell (Juggernaut, Second
+  Wind, Divine Purpose, Blink Strikes, Anticipation, Echo of the Elements, ...), since bots only cast what
+  their class strategies know.
+- **Glyphs:** major glyphs per specialization from `AiPlayerbot.PremadeSpecGlyph.<class>.<spec>`
+  (names without "Glyph of"), set in `playerbots.conf.dist` and built in: the PvE recommendations of
+  Method's MoP Classic class guides, all 102 checked to exist in this client. Random minor glyphs, which
+  are cosmetic in MoP. They go in the unlocked empty slots (levels 25, 50, 75) when random bots are
+  created (a full randomize clears the old ones) and on level-up, and with `.playerbots setspec`.
+  Glyphs have no class in GlyphProperties.dbc; a class's glyphs come from its glyph items, whose spell
+  applies the glyph (matching by name misses some: the item "Glyph of Loud Horn" applies "Glyph of the
+  Loud Horn").
+- `PremadeSpecName`, unused by any code, is gone, and the WotLK "double aura blood" spec with it.
+
+### Not done
+
+- Glyphs for alt bots on `talents spec`: it only changes what the player asked for.
+- PvP templates. Many recommended glyphs change abilities the class strategies don't use yet; they take
+  effect as Phase 3 brings the rotations up to date.
 
