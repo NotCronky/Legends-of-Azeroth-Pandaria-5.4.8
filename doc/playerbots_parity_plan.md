@@ -19,7 +19,7 @@ ported or is compiled but never switched on.
 | 0: make the existing code work | Done (2026-10-15) |
 | 1: chat commands | Done (2026-10-15): chat plumbing, control commands, and item, trade, quest, spell and talent commands. Other commands come with the systems they control |
 | 2: upkeep | Done (2026-10-17): looting, rolls, item usage, stat weights and upgrades (part 1); food, potions, vendors and mounts (part 2); talents and glyphs (part 3). Class buffs come with Phase 3 |
-| 3: class rotations for 5.4.8 | Not started; to-do list in the Phase 0 results |
+| 3: class rotations for 5.4.8 | In progress: hunters (part 1, 2026-10-17); to-do list in the Phase 0 results |
 | 4: life in the world | Not started |
 | 5: group content | Not started |
 
@@ -39,7 +39,8 @@ was left out are in the results sections at the end.
 | Mounts | Riding, flying licenses and mounts for random bots; bots mount with their master and dismount to fight |
 | Talents and glyphs | Per-specialization templates: talent columns for every tier, and the PvE major glyphs of Method's MoP Classic guides |
 | Bot creation | Talents, glyphs, gear, mounts and potions when a random bot is created or levels up; druids can be all four specializations |
-| Not yet | Class rotations for 5.4.8 (hunters have no class AI, monks none at all), class buffs, questing, travel by flight path, dungeons, battlegrounds |
+| Class rotations | Hunters: Beast Mastery, Marksmanship and Survival rotations around 5.4.8 abilities, and their pets |
+| Not yet | Class rotations for 5.4.8 for the other classes (monks have none at all), class buffs, questing, travel by flight path, dungeons, battlegrounds |
 
 ### Fixes along the way
 
@@ -56,6 +57,10 @@ was left out are in the results sections at the end.
 - **The worldserver crashes on shutdown** with random bots online: `Map::UnloadAll` deletes a creature
   whose chase movement still points at a removed bot (`ChaseMovementGenerator` destructor ->
   `AbstractFollower::SetTarget`). It predates this work.
+- **An early worldserver crash seen once, not reproduced:** while the hunter AI was being written,
+  the server crashed within minutes in 4 of 7 runs, with creature event lists or the heap corrupted
+  on map threads. The next day the same code ran clean 8 times (one run for 20 minutes), including
+  hunters re-randomizing and taming new pets; the cause was not found. Details in the Phase 3 results.
 - Group rolls, `ll`, `s vendor`, `repair`, potions in combat and mounting with a player have been built
   and run, but not yet tested in game.
 
@@ -538,3 +543,60 @@ class.
 - PvP templates. Many recommended glyphs change abilities the class strategies don't use yet; they take
   effect as Phase 3 brings the rotations up to date.
 
+
+## Phase 3 results, part 1: hunters (2026-10-17)
+
+Hunters have a MoP class AI. Built and run with 50 random bots; in a 20-minute run the hunters of all three
+specializations fought (about 550 casts), but parts of the rotations don't fire yet (below).
+
+### Done
+
+- **Strategies:** a generic hunter strategy plus `bm`, `mm` and `sv`, added by specialization, `aoe`
+  (Barrage, Multi-Shot), `boost` (Rapid Fire, Stampede), `nc` and `pet`. They replace the WotLK
+  `dps`/`bdps`/`dps debuff` strategies. Focus over 60 goes into Arcane Shot (and Bestial Wrath for Beast
+  Mastery); Kill Command, Focus Fire at five Frenzy stacks; Chimera Shot and Aimed Shot on Fire!;
+  Explosive Shot, Lock and Load and Black Arrow; Thrill of the Hunt; Kill Shot, Hunter's Mark, Serpent
+  Sting, Counter Shot, Deterrence (Feign Death without it), Misdirection on the main tank, Aspect of the
+  (Iron) Hawk, and whichever level 60 and 90 talents the bot has.
+- **Range and Auto Shot:** hunters move into range before shooting. `CastSpellAction::isPossible` now
+  rejects targets out of the spell's range for every class, since `PlayerbotAI::CanCastSpell` lets
+  `SPELL_FAILED_OUT_OF_RANGE` through on purpose. Auto Shot needs a target, and "stop auto shot" ends it
+  when its target dies (it kept repeating, about 1000 failed casts per hunter in 5 minutes).
+- **Pets:** `BotFactory::InitPet` puts a new pet in a pet slot as the current pet, as taming does. Pets
+  were saved with no slot (255), so Call Pet never found them and every refresh tamed another (one bot
+  had about 50 orphaned rows in `character_pet`; they are never loaded). Call Pet is throttled and falls
+  back to Revive Pet; Mend Pet below half health.
+- The `mounted` trigger is registered and dismounts in combat; `VendorTriggers` is now `UpkeepTriggers`.
+
+### Test results
+
+Casts in the 20-minute run, from a temporary log:
+
+| Specialization | Casts |
+|---|---|
+| Beast Mastery | Arcane Shot 42, Auto Shot 31, Hunter's Mark 16, Serpent Sting 11, Cobra Shot 6 |
+| Marksmanship | Arcane Shot 88, Steady Shot 63, Auto Shot 48 |
+| Survival | Arcane Shot 88, Auto Shot 69, Steady Shot 65, Hunter's Mark 9, Serpent Sting 9, Cobra Shot 6 |
+
+Most frequent failures: Steady Shot interrupted (56) and bad targets (14), Kill Command
+`SPELL_FAILED_DONT_REPORT` (48, never cast), Chimera Shot not enough focus (39).
+
+### Not done
+
+- Kill Command and Bestial Wrath never land; Marksmanship never casts Chimera Shot or Aimed Shot,
+  Survival never Explosive Shot or Black Arrow. Steady Shot is cast while moving.
+- The `snare target` value isn't registered for any class, so there is no Concussive Shot.
+- Traps, Disengage, Tranquilizing Shot, pet talents and pet specializations, stables, and taming.
+
+### The early crash
+
+While this was written, the worldserver crashed within minutes of starting in 4 of 7 four-minute runs,
+on map threads: `EventProcessor::AddEvent` from `Transport::UpdatePassengerPositions`,
+`EventProcessor::Update` from `Creature::Update`, and jemalloc freeing in `Strategy::GetAction`. The
+committed build before this work ran clean 4 times. The next day nothing crashed in 8 runs: with the
+hunter AI switched off (2), without Stampede (2), with all of it (1), with hunters re-randomizing with
+their pets (1) and taming new ones (1), and for 20 minutes (1). Ruled out: threading in `InitPet` (the
+bot manager runs on the world thread while no map updates), duplicate pets in a slot, and Stampede
+copies of the current pet (bots have one pet and not the glyph). If it comes back, build with
+`-DCMAKE_BUILD_TYPE=Debug` or AddressSanitizer (without jemalloc) to catch the corruption where it
+happens; a pet riding a transport fits the first stack.
