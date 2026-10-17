@@ -561,8 +561,8 @@ void AiFactory::AddDefaultNonCombatStrategies(Player* player, PlayerbotAI* const
     }
     if (!player->InBattleground())
     {
-        // "food", "quest", "loot", "gather", "duel", "mount" and "emote" are added back as they get ported
-        nonCombatEngine->addStrategiesNoInit("nc", "chat", "follow", "default", "buff", nullptr);
+        // "food", "quest", "duel", "mount" and "emote" are added back as they get ported
+        nonCombatEngine->addStrategiesNoInit("nc", "chat", "follow", "default", "loot", "gather", "buff", nullptr);
     }
 
     // Random bots that aren't following anyone live on their own. Bots a player added (addclass) follow that player

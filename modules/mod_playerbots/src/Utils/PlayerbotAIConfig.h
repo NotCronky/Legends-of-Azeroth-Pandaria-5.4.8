@@ -56,6 +56,9 @@ public:
     bool tellWhenAvoidAoe;
 
     uint32 openGoSpell;
+    bool autoEquipUpgradeLoot, freeMethodLoot, lootRollRecipe, lootRollDisenchant;
+    float equipUpgradeThreshold;
+    uint32 lootNeedRollLevel, lootGreedRollLevel;
     bool randomBotAutologin, disableRandomLevels;
     uint32 randomBotMaxLevel, randomBotMinLevel;
     float randomBotMaxLevelChance;

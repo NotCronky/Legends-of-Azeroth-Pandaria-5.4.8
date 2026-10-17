@@ -1,5 +1,7 @@
 #include "BotFactory.h"
 
+#include "StatsWeightCalculator.h"
+
 #include <random>
 #include <utility>
  
@@ -27,6 +29,7 @@
 #include "RandomItemManager.h"
 #include "SharedDefines.h"
 #include "SpellAuraDefines.h"
+#include "StatsWeightCalculator.h"
 #include "World.h"
   
 BotFactory::BotFactory(Player* bot, uint32 level, uint32 itemQuality, uint32 gearScoreLimit)
@@ -580,6 +583,8 @@ bool BotFactory::CanEquipItem(ItemTemplate const* proto)
 
 void BotFactory::InitEquipment(bool incremental, bool second_chance)
 {
+    // Candidates for a slot are random items of the bot's level; keep the one its spec values most
+    StatsWeightCalculator calculator(bot);
     std::unordered_map<uint8, std::vector<uint32>> items;
     uint32 blevel = bot->GetLevel();
     int32 delta = std::min(blevel, 10u);
@@ -642,9 +647,10 @@ void BotFactory::InitEquipment(bool incremental, bool second_chance)
         }
 
         uint32 bestItemForSlot = 0;
-        for (int index = 0; index < ids.size(); index++)
+        float bestScoreForSlot = -1.0f;
+        for (uint32 itemId : ids)
         {
-            ItemTemplate const* proto = sObjectMgr->GetItemTemplate(ids[index]);
+            ItemTemplate const* proto = sObjectMgr->GetItemTemplate(itemId);
 
             // delay heavy check to here
             if (!CanEquipItem(proto))
@@ -652,7 +658,13 @@ void BotFactory::InitEquipment(bool incremental, bool second_chance)
             uint16 dest;
             if (!CanEquipUnseenItem(slot, dest, proto->ItemId))
                 continue;
-            bestItemForSlot = proto->ItemId;
+
+            float const score = calculator.CalculateItem(proto);
+            if (score > bestScoreForSlot)
+            {
+                bestScoreForSlot = score;
+                bestItemForSlot = proto->ItemId;
+            }
         }
 
         if (bestItemForSlot == 0)
@@ -704,18 +716,24 @@ void BotFactory::InitEquipment(bool incremental, bool second_chance)
             if (ids.empty())
                 continue;
 
-            float bestScoreForSlot = -1;
+            float bestScoreForSlot = -1.0f;
             uint32 bestItemForSlot = 0;
-            for (int index = 0; index < ids.size(); index++)
+            for (uint32 itemId : ids)
             {
-                ItemTemplate const* proto = sObjectMgr->GetItemTemplate(ids[index]);
+                ItemTemplate const* proto = sObjectMgr->GetItemTemplate(itemId);
                 // delay heavy check to here
                 if (!CanEquipItem(proto))
                     continue;
                 uint16 dest;
                 if (!CanEquipUnseenItem(slot, dest, proto->ItemId))
                     continue;
-                bestItemForSlot = proto->ItemId;
+
+                float const score = calculator.CalculateItem(proto);
+                if (score > bestScoreForSlot)
+                {
+                    bestScoreForSlot = score;
+                    bestItemForSlot = proto->ItemId;
+                }
             }
 
             if (bestItemForSlot == 0)

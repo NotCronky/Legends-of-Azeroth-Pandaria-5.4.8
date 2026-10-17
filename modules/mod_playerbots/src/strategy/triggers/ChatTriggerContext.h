@@ -64,6 +64,7 @@ public:
         creators["quests"] = &ChatTriggers::command<"quests">;
         creators["spells"] = &ChatTriggers::command<"spells">;
         creators["talents"] = &ChatTriggers::command<"talents">;
+        creators["ll"] = &ChatTriggers::command<"ll">;
     }
 };
 

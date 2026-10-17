@@ -121,13 +121,21 @@ void RandomItemManager::Init()
             strstr(proto->Name1.c_str(), "Deprecated ") || strstr(proto->Name1.c_str(), "Unused ") ||
             strstr(proto->Name1.c_str(), "Monster ") || strstr(proto->Name1.c_str(), "[PH]") ||
             strstr(proto->Name1.c_str(), "(OLD)") || strstr(proto->Name1.c_str(), "QR") ||
-            strstr(proto->Name1.c_str(), "zzOLD"))
+            strstr(proto->Name1.c_str(), "zzOLD") || strstr(proto->Name1.c_str(), "Art Template"))
         {
             _itemForTest.insert(proto->ItemId);
             continue;
         }
 
         if (proto->Flags & ITEM_PROTO_FLAG_DEPRECATED)
+        {
+            _itemForTest.insert(proto->ItemId);
+            continue;
+        }
+
+        // Item level 1 copies of real items keep their stats (93182, a High Warlord's Street Sweeper for level 1);
+        // heirlooms scale instead
+        if (proto->ItemLevel <= 1 && proto->ItemStat[0].ItemStatValue && !proto->ScalingStatDistribution)
         {
             _itemForTest.insert(proto->ItemId);
             continue;

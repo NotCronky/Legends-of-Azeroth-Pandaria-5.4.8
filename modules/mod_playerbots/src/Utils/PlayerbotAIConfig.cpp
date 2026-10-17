@@ -162,6 +162,13 @@ bool PlayerbotAIConfig::Initialize()
 
     randomBotLoginAtStartup = sConfigMgr->GetBoolDefault("AiPlayerbot.RandomBotLoginAtStartup", true);
     openGoSpell = sConfigMgr->GetIntDefault("AiPlayerbot.OpenGoSpell", 6477);
+    autoEquipUpgradeLoot = sConfigMgr->GetBoolDefault("AiPlayerbot.AutoEquipUpgradeLoot", true);
+    equipUpgradeThreshold = sConfigMgr->GetFloatDefault("AiPlayerbot.EquipUpgradeThreshold", 1.1f);
+    freeMethodLoot = sConfigMgr->GetBoolDefault("AiPlayerbot.FreeMethodLoot", false);
+    lootNeedRollLevel = sConfigMgr->GetIntDefault("AiPlayerbot.LootNeedRollLevel", 1);
+    lootGreedRollLevel = sConfigMgr->GetIntDefault("AiPlayerbot.LootGreedRollLevel", 0);
+    lootRollRecipe = sConfigMgr->GetBoolDefault("AiPlayerbot.LootRollRecipe", false);
+    lootRollDisenchant = sConfigMgr->GetBoolDefault("AiPlayerbot.LootRollDisenchant", false);
 
     randomChangeMultiplier = sConfigMgr->GetFloatDefault("AiPlayerbot.RandomChangeMultiplier", 1.0);
 

@@ -24,6 +24,8 @@ public:
 
         creators["levelup"] = &WorldPacketTriggerContext::levelup;
         creators["trade status"] = &WorldPacketTriggerContext::trade_status;
+        creators["loot response"] = &WorldPacketTriggerContext::loot_response;
+        creators["item push result"] = &WorldPacketTriggerContext::item_push_result;
     }
 
 private:
@@ -37,6 +39,8 @@ private:
 
     static Trigger* levelup(PlayerbotAI* botAI) { return new WorldPacketTrigger(botAI, "levelup"); }
     static Trigger* trade_status(PlayerbotAI* botAI) { return new WorldPacketTrigger(botAI, "trade status"); }
+    static Trigger* loot_response(PlayerbotAI* botAI) { return new WorldPacketTrigger(botAI, "loot response"); }
+    static Trigger* item_push_result(PlayerbotAI* botAI) { return new WorldPacketTrigger(botAI, "item push result"); }
 };
 
 #endif

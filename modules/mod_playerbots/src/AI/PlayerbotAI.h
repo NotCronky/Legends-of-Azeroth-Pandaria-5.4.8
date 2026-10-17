@@ -9,6 +9,7 @@
 #include "Chat.h"
 #include "Event.h"
 #include "Item.h"
+#include "ObjectGuid.h"
 #include "PlayerbotAIBase.h"
 #include "NewRpgStrategy.h"
 #include "WorldPacket.h"
@@ -50,7 +51,6 @@ class Creature;
 class Engine;
 class ExternalEventHelper;
 class GameObject;
-class ObjectGuid;
 class Player;
 class Position;
 class Unit;
@@ -103,6 +103,16 @@ private:
     std::mutex _queueLock;
 };
 
+// An item up for a group roll that the bot hasn't voted on (from SMSG_LOOT_START_ROLL)
+struct PendingLootRoll
+{
+    ObjectGuid lootGuid;
+    uint8 slot = 0;
+    uint32 itemId = 0;
+    int32 randomPropertyId = 0;
+    uint8 voteMask = 0;
+};
+
 class PlayerbotAI : public PlayerbotAIBase
 {
 public:
@@ -133,6 +143,9 @@ public:
     void HandleMasterIncomingPacket(WorldPacket const& packet);
     void HandleMasterOutgoingPacket(WorldPacket const& packet);
     void HandleTeleportAck();
+    // Rolls arrive from the looting player's thread; the bot votes on its own update
+    bool HasPendingLootRolls();
+    std::vector<PendingLootRoll> TakePendingLootRolls();
     
     void Reset(bool full = false);
     void ChangeEngine(BotState type);
@@ -255,6 +268,8 @@ protected:
     PacketHandlingHelper botOutgoingPacketHandlers;
     PacketHandlingHelper masterIncomingPacketHandlers;
     PacketHandlingHelper masterOutgoingPacketHandlers;
+    std::vector<PendingLootRoll> pendingLootRolls;
+    std::mutex pendingLootRollsLock;
     //CompositeChatFilter chatFilter;
     //PlayerbotSecurity security;
     std::map<std::string, time_t> whispers;

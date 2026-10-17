@@ -14,6 +14,7 @@
 #include "LeaveGroupAction.h"
 #include "ListQuestsAction.h"
 #include "ListSpellsAction.h"
+#include "LootActions.h"
 #include "NamedObjectContext.h"
 #include "RtiAction.h"
 #include "SellAction.h"
@@ -56,6 +57,7 @@ public:
         creators["quests"] = &ChatActionContext::quests;
         creators["spells"] = &ChatActionContext::spells;
         creators["talents"] = &ChatActionContext::talents;
+        creators["ll"] = &ChatActionContext::loot_strategy;
     }
 
 private:
@@ -85,6 +87,7 @@ private:
     static Action* quests(PlayerbotAI* botAI) { return new ListQuestsAction(botAI); }
     static Action* spells(PlayerbotAI* botAI) { return new ListSpellsAction(botAI); }
     static Action* talents(PlayerbotAI* botAI) { return new TalentsAction(botAI); }
+    static Action* loot_strategy(PlayerbotAI* botAI) { return new LootStrategyAction(botAI); }
 };
 
 #endif

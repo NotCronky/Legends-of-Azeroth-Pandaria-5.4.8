@@ -15,6 +15,7 @@
 #include "GrindingStrategy.h"
 #include "GuardStrategy.h"
 #include "GroupStrategy.h"
+#include "LootNonCombatStrategy.h"
 #include "MeleeCombatStrategy.h"
 #include "MoveFromGroupStrategy.h"
 #include "PassiveStrategy.h"
@@ -53,6 +54,8 @@ public:
         creators["passive"] = &StrategyContext::passive;
         creators["grind"] = &StrategyContext::grind;
         creators["move random"] = &StrategyContext::move_random;
+        creators["loot"] = &StrategyContext::loot;
+        creators["gather"] = &StrategyContext::gather;
     }
 
 private:
@@ -63,6 +66,8 @@ private:
     static Strategy* passive(PlayerbotAI* botAI) { return new PassiveStrategy(botAI); }
     static Strategy* grind(PlayerbotAI* botAI) { return new GrindingStrategy(botAI); }
     static Strategy* move_random(PlayerbotAI* botAI) { return new MoveRandomStrategy(botAI); }
+    static Strategy* loot(PlayerbotAI* botAI) { return new LootNonCombatStrategy(botAI); }
+    static Strategy* gather(PlayerbotAI* botAI) { return new GatherStrategy(botAI); }
     // --
     
     static Strategy* world_packet(PlayerbotAI* botAI) { return new WorldPacketHandlerStrategy(botAI); }

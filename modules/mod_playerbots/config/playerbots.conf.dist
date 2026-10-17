@@ -248,6 +248,44 @@ AiPlayerbot.OpenGoSpell = 6477
 #
 ###################################################################################################
 
+####################################################################################################
+# LOOT AND GEAR
+#
+#
+
+# Bots equip items in their bags that are upgrades
+# Default: 1 (enabled)
+AiPlayerbot.AutoEquipUpgradeLoot = 1
+
+# Threshold for equipping upgrades
+# Default: 1.1 (equip when the new item scores 1.1 times the equipped one)
+AiPlayerbot.EquipUpgradeThreshold = 1.1
+
+# Bots keep looting when the group loot method is free for all
+# Default: 0 (disabled)
+AiPlayerbot.FreeMethodLoot = 0
+
+# Roll bots make on items they need (0 = pass, 1 = greed, 2 = need)
+# Default: 1 (greed)
+AiPlayerbot.LootNeedRollLevel = 1
+
+# Bots roll greed on items they don't need. If disabled they pass instead
+# Default: 0 (disabled)
+AiPlayerbot.LootGreedRollLevel = 0
+
+# Bots roll on recipes: need on recipes they can learn, greed on bind-on-equip recipes they can't
+# Default: 0 (disabled)
+AiPlayerbot.LootRollRecipe = 0
+
+# Bots with enchanting roll disenchant instead of greed when they can
+# Default: 0 (disabled)
+AiPlayerbot.LootRollDisenchant = 0
+
+#
+#
+#
+###################################################################################################
+
 #######################################
 #                                     #
 # PLAYERBOT RNDBOT SPECIFIC SETTINGS  #

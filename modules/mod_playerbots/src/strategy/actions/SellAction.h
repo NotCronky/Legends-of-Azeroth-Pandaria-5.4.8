@@ -11,8 +11,8 @@
 class Creature;
 class PlayerbotAI;
 
-// "s <items>": sell to a nearby vendor. "s gray" or "s *" sells grey items; "s <quality>" sells armor and
-// weapons of that quality or lower, "s <quality> all" every kind of item
+// "s <items>": sell to a nearby vendor. "s gray" or "s *" sells grey items; "s vendor" what the bot has no
+// other use for; "s <quality>" sells armor and weapons of that quality or lower, "s <quality> all" every kind of item
 class SellAction : public InventoryAction
 {
 public:

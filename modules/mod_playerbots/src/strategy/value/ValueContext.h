@@ -16,6 +16,8 @@
 #include "HasTotemValue.h"
 #include "InvalidTargetValue.h"
 #include "IsBehindValue.h"
+#include "ItemUsageValue.h"
+#include "LootValues.h"
 #include "IsMovingValue.h"
 #include "LastMovementValue.h"
 #include "LastSpellCastValue.h"
@@ -75,6 +77,16 @@ public:
         creators["has totem"] = &ValueContext::has_totem;
 
         creators["distance"] = &ValueContext::distance;
+
+        creators["item usage"] = &ValueContext::item_usage;
+        creators["available loot"] = &ValueContext::available_loot;
+        creators["loot target"] = &ValueContext::loot_target;
+        creators["can loot"] = &ValueContext::can_loot;
+        creators["has available loot"] = &ValueContext::has_available_loot;
+        creators["loot strategy"] = &ValueContext::loot_strategy;
+        creators["always loot list"] = &ValueContext::always_loot_list;
+        creators["nearest corpses"] = &ValueContext::nearest_corpses;
+        creators["nearest game objects"] = &ValueContext::nearest_game_objects;
         creators["moving"] = &ValueContext::moving;
         creators["swimming"] = &ValueContext::swimming;
         creators["behind"] = &ValueContext::behind;
@@ -200,6 +212,16 @@ private:
     static UntypedValue* moving(PlayerbotAI* botAI) { return new IsMovingValue(botAI); }
     static UntypedValue* swimming(PlayerbotAI* botAI) { return new IsSwimmingValue(botAI); }
     static UntypedValue* distance(PlayerbotAI* botAI) { return new DistanceValue(botAI); }
+
+    static UntypedValue* item_usage(PlayerbotAI* botAI) { return new ItemUsageValue(botAI); }
+    static UntypedValue* available_loot(PlayerbotAI* botAI) { return new AvailableLootValue(botAI); }
+    static UntypedValue* loot_target(PlayerbotAI* botAI) { return new LootTargetValue(botAI); }
+    static UntypedValue* can_loot(PlayerbotAI* botAI) { return new CanLootValue(botAI); }
+    static UntypedValue* has_available_loot(PlayerbotAI* botAI) { return new HasAvailableLootValue(botAI); }
+    static UntypedValue* loot_strategy(PlayerbotAI* botAI) { return new LootStrategyValue(botAI); }
+    static UntypedValue* always_loot_list(PlayerbotAI* botAI) { return new AlwaysLootListValue(botAI); }
+    static UntypedValue* nearest_corpses(PlayerbotAI* botAI) { return new NearestCorpsesValue(botAI); }
+    static UntypedValue* nearest_game_objects(PlayerbotAI* botAI) { return new NearestLootableObjectsValue(botAI); }
     static UntypedValue* rti_target(PlayerbotAI* botAI) { return new RtiTargetValue(botAI); }
     static UntypedValue* rti_cc_target(PlayerbotAI* botAI) { return new RtiCcTargetValue(botAI); }
     static UntypedValue* rti(PlayerbotAI* botAI) { return new RtiValue(botAI); }

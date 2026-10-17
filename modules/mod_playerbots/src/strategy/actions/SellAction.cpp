@@ -7,6 +7,7 @@
 
 #include "ChatHelper.h"
 #include "Event.h"
+#include "ItemUsageValue.h"
 #include "Playerbots.h"
 
 namespace
@@ -39,6 +40,23 @@ namespace
         uint32 maxQuality;
         bool allClasses;
     };
+
+    // Bag items whose only use is selling them, usable by the bot or not
+    class VendorItemVisitor : public FindItemVisitor
+    {
+    public:
+        VendorItemVisitor(AiObjectContext* context) : context(context) {}
+
+    protected:
+        bool Accept(ItemTemplate const* proto) override
+        {
+            return proto->SellPrice &&
+                   AI_VALUE2(ItemUsage, "item usage", ItemUsageValue::Qualify(proto->ItemId)) == ITEM_USAGE_VENDOR;
+        }
+
+    private:
+        AiObjectContext* context;
+    };
 }
 
 bool SellAction::Execute(Event event)
@@ -49,7 +67,7 @@ bool SellAction::Execute(Event event)
     std::string const text = event.getParam();
     if (text.empty())
     {
-        botAI->TellMaster("Usage: s gray/*/<quality> [all]/<item link or name>");
+        botAI->TellMaster("Usage: s gray/*/vendor/<quality> [all]/<item link or name>");
         return false;
     }
 
@@ -70,7 +88,14 @@ bool SellAction::Execute(Event event)
     }
 
     uint32 const maxQuality = ChatHelper::parseItemQuality(quality);
-    if (maxQuality != MAX_ITEM_QUALITY)
+    if (text == "vendor")
+    {
+        // What the bot has no use for other than selling it
+        VendorItemVisitor visitor(context);
+        IterateItems(&visitor);
+        items = visitor.GetResult();
+    }
+    else if (maxQuality != MAX_ITEM_QUALITY)
     {
         SellableByQualityVisitor visitor(maxQuality, allClasses);
         IterateItems(&visitor);

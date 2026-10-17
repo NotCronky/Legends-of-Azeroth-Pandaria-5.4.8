@@ -14,12 +14,21 @@ class PlayerbotAI;
 class EquipAction : public InventoryAction
 {
 public:
-    EquipAction(PlayerbotAI* botAI) : InventoryAction(botAI, "equip") {}
+    EquipAction(PlayerbotAI* botAI, std::string const name = "equip") : InventoryAction(botAI, name) {}
 
     bool Execute(Event event) override;
 
-private:
-    bool EquipItem(Item* item);
+protected:
+    bool EquipItem(Item* item, bool tellErrors = true);
+};
+
+// Equip the items in the bags that are upgrades, when an item arrives (loot, trade, quest reward)
+class EquipUpgradesAction : public EquipAction
+{
+public:
+    EquipUpgradesAction(PlayerbotAI* botAI) : EquipAction(botAI, "equip upgrades") {}
+
+    bool Execute(Event event) override;
 };
 
 // "ue <items or slots>": move equipped items to the bags

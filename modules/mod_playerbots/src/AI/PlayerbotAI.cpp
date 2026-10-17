@@ -161,6 +161,8 @@ PlayerbotAI::PlayerbotAI(Player* bot)
     botOutgoingPacketHandlers.AddHandler(SMSG_GROUP_INVITE, "group invite");
     botOutgoingPacketHandlers.AddHandler(SMSG_GROUP_DESTROYED, "group destroyed");
     botOutgoingPacketHandlers.AddHandler(SMSG_TRADE_STATUS, "trade status");
+    botOutgoingPacketHandlers.AddHandler(SMSG_LOOT_RESPONSE, "loot response");
+    botOutgoingPacketHandlers.AddHandler(SMSG_ITEM_PUSH_RESULT, "item push result");
 }
 
 PlayerbotAI::~PlayerbotAI()
@@ -1234,6 +1236,49 @@ void PlayerbotAI::HandleBotOutgoingPacket(WorldPacket const& packet)
     {
         return;
     }
+    case SMSG_LOOT_START_ROLL:
+    {
+        // In the order Group's BuildStartLootRollPacket writes it
+        WorldPacket p = packet;
+        p.rpos(0);
+        PendingLootRoll roll;
+        ObjectGuid& guid = roll.lootGuid;
+        p.ReadBits(3);
+        bool const noSlot = p.ReadBit();
+        p.ReadBit();
+        guid[3] = p.ReadBit();
+        guid[1] = p.ReadBit();
+        guid[7] = p.ReadBit();
+        guid[6] = p.ReadBit();
+        guid[2] = p.ReadBit();
+        guid[4] = p.ReadBit();
+        guid[5] = p.ReadBit();
+        guid[0] = p.ReadBit();
+        bool const noUnk = p.ReadBit();
+        p.ReadBits(2);
+        p.ReadByteSeq(guid[7]);
+        uint32 randomPropertyId, mapId, randomSuffix, unk, count, countDown;
+        p >> randomPropertyId;
+        p.ReadByteSeq(guid[5]);
+        p >> mapId >> randomSuffix;
+        if (!noSlot)
+            p >> roll.slot;
+        p.ReadByteSeq(guid[4]);
+        p.ReadByteSeq(guid[0]);
+        p.ReadByteSeq(guid[3]);
+        p.ReadByteSeq(guid[2]);
+        p >> unk >> roll.itemId >> roll.voteMask >> count;
+        p.read_skip<uint8>();
+        p >> countDown;
+        if (!noUnk)
+            p.read_skip<uint8>();
+        p.ReadByteSeq(guid[6]);
+        roll.randomPropertyId = int32(randomPropertyId);
+
+        std::lock_guard<std::mutex> guard(pendingLootRollsLock);
+        pendingLootRolls.push_back(roll);
+        return;
+    }
     case SMSG_TIME_SYNC_REQ:
     {
         WorldPacket p = packet;
@@ -1251,6 +1296,20 @@ void PlayerbotAI::HandleBotOutgoingPacket(WorldPacket const& packet)
         botOutgoingPacketHandlers.AddPacket(packet);
         return;
     }
+}
+
+bool PlayerbotAI::HasPendingLootRolls()
+{
+    std::lock_guard<std::mutex> guard(pendingLootRollsLock);
+    return !pendingLootRolls.empty();
+}
+
+std::vector<PendingLootRoll> PlayerbotAI::TakePendingLootRolls()
+{
+    std::lock_guard<std::mutex> guard(pendingLootRollsLock);
+    std::vector<PendingLootRoll> rolls;
+    rolls.swap(pendingLootRolls);
+    return rolls;
 }
 
 void PlayerbotAI::HandleMasterIncomingPacket(WorldPacket const& packet)

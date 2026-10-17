@@ -22,6 +22,10 @@ void WorldPacketHandlerStrategy::InitTriggers(std::vector<TriggerNode*>& trigger
     triggers.push_back(new TriggerNode("revive from corpse", NextAction::array(0, new NextAction("revive from corpse", relevance), nullptr)));
 
     triggers.push_back(new TriggerNode("trade status", NextAction::array(0, new NextAction("trade status", relevance), nullptr)));
+
+    triggers.push_back(new TriggerNode("loot response", NextAction::array(0, new NextAction("store loot", relevance), nullptr)));
+    triggers.push_back(new TriggerNode("loot roll", NextAction::array(0, new NextAction("loot roll", relevance), nullptr)));
+    triggers.push_back(new TriggerNode("item push result", NextAction::array(0, new NextAction("equip upgrades", relevance), nullptr)));
 }
 
 WorldPacketHandlerStrategy::WorldPacketHandlerStrategy(PlayerbotAI* botAI) : PassTroughStrategy(botAI)

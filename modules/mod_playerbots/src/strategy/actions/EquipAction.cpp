@@ -8,7 +8,9 @@
 #include "ChatHelper.h"
 #include "Event.h"
 #include "Helper.h"
+#include "ItemUsageValue.h"
 #include "Playerbots.h"
+#include "StatsWeightCalculator.h"
 
 bool EquipAction::Execute(Event event)
 {
@@ -40,7 +42,7 @@ bool EquipAction::Execute(Event event)
     return equipped;
 }
 
-bool EquipAction::EquipItem(Item* item)
+bool EquipAction::EquipItem(Item* item, bool tellErrors)
 {
     ItemTemplate const* proto = item->GetTemplate();
 
@@ -48,6 +50,9 @@ bool EquipAction::EquipItem(Item* item)
     InventoryResult const result = bot->CanEquipItem(NULL_SLOT, dest, item, !item->IsBag());
     if (result != EQUIP_ERR_OK)
     {
+        if (!tellErrors)
+            return false;
+
         std::ostringstream out;
         out << "I can't equip " << ChatHelper::FormatItem(proto) << " (error " << uint32(result) << ")";
         botAI->TellMaster(out);
@@ -67,6 +72,81 @@ bool EquipAction::EquipItem(Item* item)
 
     botAI->TellMaster("Equipping " + ChatHelper::FormatItem(proto));
     return true;
+}
+
+bool EquipUpgradesAction::Execute(Event /*event*/)
+{
+    if (!sPlayerbotAIConfig->autoEquipUpgradeLoot && !sRandomPlayerbotMgr->IsRandomBot(bot))
+        return false;
+
+    // Armor can't be changed in combat
+    if (bot->IsInCombat())
+        return false;
+
+    class EquippableVisitor : public FindItemVisitor
+    {
+    protected:
+        bool Accept(ItemTemplate const* proto) override { return proto->InventoryType != INVTYPE_NON_EQUIP; }
+    };
+
+    // Each upgrade changes what the next one is compared with, so look again after every swap
+    bool equipped = false;
+    std::set<ObjectGuid> tried;
+    for (uint32 pass = 0; pass < MAX_EQUIPMENT_ITEMS; ++pass)
+    {
+        EquippableVisitor visitor;
+        IterateItems(&visitor);
+
+        Item* upgrade = nullptr;
+        for (Item* item : visitor.GetResult())
+        {
+            if (tried.count(item->GetGUID()))
+                continue;
+
+            ItemTemplate const* proto = item->GetTemplate();
+            ItemUsage const usage =
+                AI_VALUE2(ItemUsage, "item usage", ItemUsageValue::Qualify(proto->ItemId, item->GetItemRandomPropertyId()));
+            if (usage == ITEM_USAGE_EQUIP || usage == ITEM_USAGE_REPLACE || usage == ITEM_USAGE_BROKEN_EQUIP)
+            {
+                upgrade = item;
+                break;
+            }
+        }
+
+        if (!upgrade)
+            break;
+
+        tried.insert(upgrade->GetGUID());
+
+        // Bags go in a free bag slot
+        if (upgrade->GetTemplate()->Class == ITEM_CLASS_CONTAINER)
+        {
+            equipped |= EquipItem(upgrade, false);
+            continue;
+        }
+
+        // Into the slot the upgrade was measured against: the auto-equip handler would always pick the first ring,
+        // trinket or hand, and swap the replaced item back in next time
+        StatsWeightCalculator calculator(bot);
+        float oldScore = 0.0f;
+        uint8 const slot = ItemUsageValue::FindUpgradeSlot(bot, upgrade->GetTemplate(), calculator, oldScore);
+        if (slot == NULL_SLOT)
+            continue;
+
+        uint16 dest;
+        if (bot->CanEquipItem(slot, dest, upgrade, true) != EQUIP_ERR_OK)
+            continue;
+
+        std::string const link = ChatHelper::FormatItem(upgrade->GetTemplate());
+        bot->SwapItem(upgrade->GetPos(), dest);
+        if (bot->GetItemByPos(dest) == upgrade)
+        {
+            botAI->TellMaster("Equipping " + link);
+            equipped = true;
+        }
+    }
+
+    return equipped;
 }
 
 bool UnequipAction::Execute(Event event)

@@ -10,6 +10,7 @@
 #include "NamedObjectContext.h"
 #include "GenericTriggers.h"
 #include "HealthTriggers.h"
+#include "LootTriggers.h"
 #include "RangeTriggers.h"
 #include "NewRpgTriggers.h"
 
@@ -20,6 +21,10 @@ public:
     TriggerContext()
     {
         creators["timer"] = &TriggerContext::Timer;
+        creators["loot available"] = &TriggerContext::loot_available;
+        creators["far from loot target"] = &TriggerContext::far_from_loot_target;
+        creators["can loot"] = &TriggerContext::can_loot;
+        creators["loot roll"] = &TriggerContext::loot_roll;
         creators["random"] = &TriggerContext::Random;
         creators["seldom"] = &TriggerContext::seldom;
         creators["often"] = &TriggerContext::often;
@@ -105,6 +110,10 @@ public:
     }
 
 private:
+    static Trigger* loot_available(PlayerbotAI* botAI) { return new LootAvailableTrigger(botAI); }
+    static Trigger* far_from_loot_target(PlayerbotAI* botAI) { return new FarFromCurrentLootTrigger(botAI); }
+    static Trigger* can_loot(PlayerbotAI* botAI) { return new CanLootTrigger(botAI); }
+    static Trigger* loot_roll(PlayerbotAI* botAI) { return new LootRollTrigger(botAI); }
     static Trigger* Timer(PlayerbotAI* botAI) { return new TimerTrigger(botAI); }
     static Trigger* Random(PlayerbotAI* botAI) { return new RandomTrigger(botAI, "random", 20); }
     static Trigger* seldom(PlayerbotAI* botAI) { return new RandomTrigger(botAI, "seldom", 300); }

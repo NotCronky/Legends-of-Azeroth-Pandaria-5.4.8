@@ -1,7 +1,7 @@
 #include "DistanceValue.h"
 
 //#include "Formations.h"
-//#include "LootObjectStack.h"
+#include "LootObjectStack.h"
 #include "Playerbots.h"
 #include "PositionValue.h"
 #include "ServerFacade.h"
@@ -9,7 +9,7 @@
 
 float DistanceValue::Calculate()
 {
-    /*if (qualifier == "loot target")
+    if (qualifier == "loot target")
     {
         LootObject loot = AI_VALUE(LootObject, qualifier);
         if (loot.IsEmpty())
@@ -20,7 +20,7 @@ float DistanceValue::Calculate()
             return 0.0f;
 
         return sServerFacade->GetDistance2d(botAI->GetBot(), obj);
-    }*/
+    }
 
     if (qualifier.find("position_") == 0)
     {

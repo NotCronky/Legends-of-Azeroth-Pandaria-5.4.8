@@ -6,7 +6,9 @@
 #include "AutoMaintenanceOnLevelupAction.h"
 #include "ChooseTargetActions.h"
 #include "FollowActions.h"
+#include "EquipAction.h"
 #include "GenericActions.h"
+#include "LootActions.h"
 #include "PositionAction.h"
 #include "RtiAction.h"
 #include "MovementActions.h"
@@ -43,6 +45,15 @@ public:
         creators["mark rti"] = &ActionContext::mark_rti;
         creators["attack rti target"] = &ActionContext::attack_rti_target;
         creators["auto maintenance on levelup"] = &ActionContext::auto_maintenance_on_levelup;
+
+        creators["loot"] = &ActionContext::loot;
+        creators["move to loot"] = &ActionContext::move_to_loot;
+        creators["open loot"] = &ActionContext::open_loot;
+        creators["store loot"] = &ActionContext::store_loot;
+        creators["add all loot"] = &ActionContext::add_all_loot;
+        creators["add gathering loot"] = &ActionContext::add_gathering_loot;
+        creators["loot roll"] = &ActionContext::loot_roll;
+        creators["equip upgrades"] = &ActionContext::equip_upgrades;
 
         creators["tank face"] = &ActionContext::tank_face;
         creators["tank assist"] = &ActionContext::tank_assist;
@@ -89,6 +100,15 @@ private:
     static Action* mark_rti(PlayerbotAI* botAI) { return new MarkRtiAction(botAI); }
     static Action* attack_rti_target(PlayerbotAI* botAI) { return new AttackRtiTargetAction(botAI); }
     static Action* auto_maintenance_on_levelup(PlayerbotAI* botAI) { return new AutoMaintenanceOnLevelupAction(botAI); }
+
+    static Action* loot(PlayerbotAI* botAI) { return new LootAction(botAI); }
+    static Action* move_to_loot(PlayerbotAI* botAI) { return new MoveToLootAction(botAI); }
+    static Action* open_loot(PlayerbotAI* botAI) { return new OpenLootAction(botAI); }
+    static Action* store_loot(PlayerbotAI* botAI) { return new StoreLootAction(botAI); }
+    static Action* add_all_loot(PlayerbotAI* botAI) { return new AddAllLootAction(botAI); }
+    static Action* add_gathering_loot(PlayerbotAI* botAI) { return new AddGatheringLootAction(botAI); }
+    static Action* loot_roll(PlayerbotAI* botAI) { return new LootRollAction(botAI); }
+    static Action* equip_upgrades(PlayerbotAI* botAI) { return new EquipUpgradesAction(botAI); }
 
     static Action* tank_face(PlayerbotAI* botAI) { return new TankFaceAction(botAI); }
     static Action* tank_assist(PlayerbotAI* botAI) { return new TankAssistAction(botAI); }
