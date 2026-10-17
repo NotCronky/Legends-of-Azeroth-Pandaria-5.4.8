@@ -4,7 +4,7 @@ Comparison of `modules/mod_playerbots` (MoP 5.4.8) against AzerothCore
 [mod-playerbots](https://github.com/mod-playerbots/mod-playerbots) (WotLK 3.3.5,
 checkout dated 2026-09-20), and a plan to bring the MoP bots to parity.
 
-Audit date: 2026-10-15. Last updated: 2026-10-15.
+Audit date: 2026-10-15. Last updated: 2026-10-17.
 
 ## Summary
 
@@ -18,7 +18,7 @@ ported or is compiled but never switched on.
 |---|---|
 | 0: make the existing code work | Done (2026-10-15) |
 | 1: chat commands | Done (2026-10-15): chat plumbing, control commands, and item, trade, quest, spell and talent commands. Other commands come with the systems they control |
-| 2: upkeep | Not started |
+| 2: upkeep | In progress: part 1 (looting, rolls, item usage, stat weights, upgrades) done 2026-10-17 |
 | 3: class rotations for 5.4.8 | Not started; to-do list in the Phase 0 results |
 | 4: life in the world | Not started |
 | 5: group content | Not started |
@@ -137,7 +137,7 @@ grouping with bots.
 ### Phase 2: upkeep (2–3 weeks)
 
 1. Looting and rolling, eating and drinking, potions, buffs, mounts, and repairing
-   and selling at vendors.
+   and selling at vendors. Looting and rolling are done (part 1); the rest is part 2.
 2. Gear choice: port AzerothCore's stat-weight system (`Mgr/Item`), adjusted for
    MoP stats (mastery; hit, expertise and haste caps; reforging can wait), so bots
    equip upgrades.
@@ -375,3 +375,59 @@ master's group: as ungrouped bots from a random-bot account they got the solo `g
 reset it once they joined. Strategies are now set after the bot joins, and bots with a real-player master never
 get the solo strategies. Addclass setup (level, spec, talents, gear) also moved from a detached thread, which
 changed the bot while it was in the world and sometimes teleported it away, into the login callback.
+
+## Phase 2 results, part 1 (2026-10-17)
+
+Bots loot, gather, roll on group loot and wear the upgrades they find; new random bots get gear
+chosen by stat weights. Built and run with 50 random bots for 10 minutes: no errors or new
+warnings, 23 bots picked up items (grey items, quest items, food, potions, herbs) and 15 looted money.
+Group rolls, `ll` and `s vendor` still need testing in game.
+
+### Done
+
+- **Stat weights** (`Utils/StatsWeightCalculator`), written for MoP rather than ported: weights
+  per role (strength or agility tank, strength or agility melee, hunter, caster, healer) by
+  specialization, or by class before level 10. Counts mastery, bonus armor, spirit as hit for
+  Balance, Shadow and Elemental, hit and expertise up to the 7.5% / 15% caps, sockets, random
+  suffixes, and on-equip, on-use and proc effects by uptime. Items without the role's primary stat,
+  lower armor types (weighted more from level 50, when armor specialization applies) and weapons the
+  spec can't use well (bows for non-hunters in the shared main hand, non-daggers for Assassination and
+  Subtlety, one-handers for two-handed specs) score low.
+- **Item usage value** (`item usage`): equip, replace, broken equip, quest, profession tool,
+  profession reagent or recipe, consumable to carry (two stacks of the best food, drink and potions),
+  disenchant, auction or vendor. Rings, trinkets and dual-wielded weapons compare against the weaker
+  of the two slots; two-handers against both hands.
+- **Looting** (`loot` and `gather` strategies, now default out of combat): corpses, chests without
+  quest conditions, and herbs, ore and skinnable corpses for bots with the profession. Items go through
+  the core's loot handlers (`CMSG_LOOT`, `CMSG_AUTOSTORE_LOOT_ITEM`) with the same checks the loot
+  window applies: round robin, blocked items, personal, quest and free-for-all items, bag space. The
+  loot strategy decides which items: `normal` (anything with a use, including selling), `gray`,
+  `disenchant`, `all`. Bots don't loot with free-for-all group loot unless
+  `AiPlayerbot.FreeMethodLoot` is set.
+- **Group rolls:** `SMSG_LOOT_START_ROLL` is queued per bot, and the bot votes need, greed,
+  disenchant or pass by item usage, limited by what the roll allows. AzerothCore's settings and
+  defaults: `LootNeedRollLevel` (1: greed instead of need), `LootGreedRollLevel`, `LootRollRecipe`,
+  `LootRollDisenchant`.
+- **Upgrades:** when an item arrives in the bags (`SMSG_ITEM_PUSH_RESULT`), bots out of combat equip
+  the items that are upgrades by `AiPlayerbot.EquipUpgradeThreshold` (default 1.1), into the slot they
+  were compared with. Random bots always do; other bots if `AiPlayerbot.AutoEquipUpgradeLoot` is set.
+- **New random bots' gear:** `InitEquipment` keeps the best-scoring of its random candidates for each
+  slot instead of the last one. Art test items and item level 1 placeholder copies of real items
+  (126 of them, for example a level 1 High Warlord's Street Sweeper) are no longer candidates.
+- **Restoration shamans get the healer role:** `AiFactory::GetPlayerRoles` checked
+  `SPEC_DRUID_RESTORATION` for shamans, so they were treated as DPS.
+- **Commands:** `ll [normal|gray|disenchant|all]` sets the loot strategy, `ll <item>` / `ll -<item>`
+  edits the always-loot list, `ll ?` and `ll ?<item>` report them. `s vendor` sells items whose only
+  use is selling.
+
+### Found, not fixed
+
+- **The worldserver crashes on shutdown** with random bots online: `Map::UnloadAll` deletes a creature
+  whose chase movement still points at a removed bot (`ChaseMovementGenerator` destructor ->
+  `AbstractFollower::SetTarget`). It happens on the build before this work too.
+
+### Not ported from AzerothCore
+
+- Looting items in the bags (clams, lockboxes), fishing, and the random-bot trade economy.
+- Guild task items, the drop map values, and broadcasting loot to chat.
+
