@@ -18,7 +18,7 @@ ported or is compiled but never switched on.
 |---|---|
 | 0: make the existing code work | Done (2026-10-15) |
 | 1: chat commands | Done (2026-10-15): chat plumbing, control commands, and item, trade, quest, spell and talent commands. Other commands come with the systems they control |
-| 2: upkeep | In progress: part 1 (looting, rolls, item usage, stat weights, upgrades) done 2026-10-17 |
+| 2: upkeep | In progress: part 1 (looting, rolls, item usage, stat weights, upgrades) and part 2 (food, potions, vendors, mounts) done 2026-10-17; talents and glyphs to do |
 | 3: class rotations for 5.4.8 | Not started; to-do list in the Phase 0 results |
 | 4: life in the world | Not started |
 | 5: group content | Not started |
@@ -137,7 +137,8 @@ grouping with bots.
 ### Phase 2: upkeep (2–3 weeks)
 
 1. Looting and rolling, eating and drinking, potions, buffs, mounts, and repairing
-   and selling at vendors. Looting and rolling are done (part 1); the rest is part 2.
+   and selling at vendors. Looting and rolling are part 1, the rest part 2; class buffs come with the
+   Phase 3 class rewrites.
 2. Gear choice: port AzerothCore's stat-weight system (`Mgr/Item`), adjusted for
    MoP stats (mastery; hit, expertise and haste caps; reforging can wait), so bots
    equip upgrades.
@@ -430,4 +431,39 @@ Group rolls, `ll` and `s vendor` still need testing in game.
 
 - Looting items in the bags (clams, lockboxes), fishing, and the random-bot trade economy.
 - Guild task items, the drop map values, and broadcasting loot to chat.
+
+## Phase 2 results, part 2 (2026-10-17)
+
+Bots eat, drink, drink potions, repair, sell their junk and ride. Built and run with 50 random bots
+(several runs, 5 to 9 minutes): bots ate and drank when low (at a third to half health), sold junk at
+vendors, mounted to travel and dismounted to fight; re-randomized bots got riding, mounts and potions.
+No new errors or warnings. Repairing at an NPC and potions in combat weren't seen in these runs (the
+random-bot refresh repairs for free, and no bot ran low in a fight); the `repair` command needs testing
+in game.
+
+### Done
+
+- **Eating and drinking** (`food` strategy, default out of combat). With `AiPlayerbot.BotCheats`
+  containing `food` (AzerothCore's default) bots cast the eating or drinking spell of the best vendor
+  food for their level, without needing any, from medium health or high mana down. Without it they use
+  the best food and drink in their bags when low. They sit until full, as in AzerothCore.
+- **Potions** (`potions` strategy, default in combat): a healthstone at critical health, then a healing
+  potion; a mana potion from medium mana. The best usable one in the bags that is off cooldown.
+  Random bots get a stack of the best healing potions for their level, and mana potions if they use
+  mana, when they are created, level up or are refreshed and have none.
+- **Repairing and selling** (`vendor` strategy, default out of combat): next to a repair NPC with worn
+  gear and the money, bots repair everything; next to a vendor they sell what they only have a use for
+  selling. Wandering random bots with gear under 80% or bags over 80% full walk to a repair NPC or vendor
+  nearby first. `repair` command. Fixed: the durability value was 0% for a bot with no gear that wears.
+- **Mounts** (`mount` strategy, default out of combat): bots following a player mount and dismount
+  with them (flying if the player flies and the zone allows it); random bots ride to far destinations,
+  but not while they have a target, since the grind attack would dismount them again. Attacking
+  dismounts. Random bots learn riding (apprentice 20 to master 80, Flight Master's License, Cold
+  Weather Flying, Wisdom of the Four Winds) and a racial ground mount and a faction flying mount. Mounts
+  are account-wide in this core, so bots on the same random-bot account share them.
+
+### Not ported from AzerothCore
+
+- The `gold`, `health`, `mana`, `power`, `taxi` and `raid` cheats.
+- Bandages, reagents, rogue poisons and buff food.
 
