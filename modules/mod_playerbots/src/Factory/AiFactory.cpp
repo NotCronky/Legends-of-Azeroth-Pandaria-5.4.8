@@ -82,7 +82,7 @@ BotRoles AiFactory::GetPlayerRoles(Player* player)
                 role = BOT_ROLE_HEALER;
             break;
         case CLASS_SHAMAN:
-            if (spec == Specializations::SPEC_DRUID_RESTORATION)
+            if (spec == Specializations::SPEC_SHAMAN_RESTORATION)
                 role = BOT_ROLE_HEALER;
             else
                 role = BOT_ROLE_DPS;
