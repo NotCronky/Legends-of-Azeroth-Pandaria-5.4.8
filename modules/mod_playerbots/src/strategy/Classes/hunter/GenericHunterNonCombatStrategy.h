@@ -10,6 +10,7 @@
 
 class PlayerbotAI;
 
+// Keep an aspect up out of combat
 class GenericHunterNonCombatStrategy : public NonCombatStrategy
 {
 public:
@@ -19,6 +20,7 @@ public:
     void InitTriggers(std::vector<TriggerNode*>& triggers) override;
 };
 
+// Call, revive and heal the pet, and let it use its abilities
 class HunterPetStrategy : public Strategy
 {
 public:

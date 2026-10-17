@@ -18,6 +18,15 @@ namespace
     bool IsFlyingMount(SpellInfo const* spellInfo) { return spellInfo->HasAura(SPELL_AURA_MOD_INCREASE_MOUNTED_FLIGHT_SPEED); }
 }
 
+bool DismountAction::isUseful() { return bot->IsMounted() && !bot->IsInFlight(); }
+
+bool DismountAction::Execute(Event /*event*/)
+{
+    bot->RemoveAurasByType(SPELL_AURA_MOUNTED);
+    bot->Dismount();
+    return true;
+}
+
 bool CheckMountStateAction::isPossible()
 {
     return !bot->IsInCombat() && !bot->IsInWater() && !bot->GetVehicle() && !bot->HasUnitState(UNIT_STATE_CASTING);

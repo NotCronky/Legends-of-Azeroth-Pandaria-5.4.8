@@ -217,6 +217,10 @@ void BotFactory::InitPet()
         }
     }*/
 
+    // A pet in the first slot is summoned with Call Pet 1; only make one when there is none
+    if (!pet && bot->GetClass() == CLASS_HUNTER && bot->GetPetIdBySlot(PET_SLOT_ACTIVE_FIRST))
+        return;
+
     if (!pet)
     {
         if (bot->GetClass() != CLASS_HUNTER)
@@ -276,8 +280,18 @@ void BotFactory::InitPet()
             bot->SetMinion(pet, true);
  
             pet->InitTalentForLevel();
- 
-            pet->SavePetToDB();
+
+            // As Spell::EffectTameCreature does: into a pet slot, as the current pet
+            CharacterDatabaseTransaction trans = CharacterDatabase.BeginTransaction();
+            bot->AddNewPet(newPetSlot, pet);
+            bot->SetCurrentPetId(pet->GetCharmInfo()->GetPetNumber(), trans);
+            pet->SavePetToDB(trans);
+            CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_UPD_CHAR_PET_SLOT_BY_ID);
+            stmt->setUInt8(0, newPetSlot);
+            stmt->setUInt32(1, bot->GetGUID().GetCounter());
+            stmt->setUInt32(2, pet->GetCharmInfo()->GetPetNumber());
+            trans->Append(stmt);
+            CharacterDatabase.CommitTransaction(trans);
             bot->PetSpellInitialize();
             break;
         }

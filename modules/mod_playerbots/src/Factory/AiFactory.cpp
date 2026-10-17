@@ -330,8 +330,14 @@ void AiFactory::AddDefaultCombatStrategies(Player* player, PlayerbotAI* const fa
         }
         case CLASS_HUNTER:
         {
-            engine->addStrategiesNoInit("dps", "aoe", "bdps", "dps assist", nullptr);
-            engine->addStrategy("dps debuff", false);
+            if (spec == Specializations::SPEC_HUNTER_MARKSMANSHIP)
+                engine->addStrategy("mm", false);
+            else if (spec == Specializations::SPEC_HUNTER_SURVIVAL)
+                engine->addStrategy("sv", false);
+            else
+                engine->addStrategy("bm", false);
+
+            engine->addStrategiesNoInit("aoe", "pet", "dps assist", nullptr);
             break;
         }
         case CLASS_ROGUE:
@@ -491,7 +497,7 @@ void AiFactory::AddDefaultNonCombatStrategies(Player* player, PlayerbotAI* const
             nonCombatEngine->addStrategiesNoInit("cure", nullptr);
             break;
         case CLASS_HUNTER:
-            nonCombatEngine->addStrategiesNoInit("bdps", "dps assist", "pet", nullptr);
+            nonCombatEngine->addStrategiesNoInit("dps assist", "pet", nullptr);
             break;
         case CLASS_SHAMAN:
             if (tab == Specializations::SPEC_SHAMAN_ELEMENTAL || tab == Specializations::SPEC_SHAMAN_RESTORATION)

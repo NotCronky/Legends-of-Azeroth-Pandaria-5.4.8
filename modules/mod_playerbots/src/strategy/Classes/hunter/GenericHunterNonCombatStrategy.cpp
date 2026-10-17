@@ -7,33 +7,20 @@
 
 #include "Playerbots.h"
 
-class GenericHunterNonCombatStrategyActionNodeFactory : public NamedObjectFactory<ActionNode>
+namespace
 {
-public:
-    GenericHunterNonCombatStrategyActionNodeFactory()
+    class GenericHunterNonCombatStrategyActionNodeFactory : public NamedObjectFactory<ActionNode>
     {
-        creators["rapid fire"] = &rapid_fire;
-        creators["boost"] = &rapid_fire;
-        creators["aspect of the pack"] = &aspect_of_the_pack;
-    }
+    public:
+        GenericHunterNonCombatStrategyActionNodeFactory()
+        {
+            creators["aspect of the iron hawk"] = &aspect_of_the_iron_hawk;
+        }
 
-private:
-    static ActionNode* rapid_fire([[maybe_unused]] PlayerbotAI* botAI)
-    {
-        return new ActionNode("rapid fire",
-                              /*P*/ nullptr,
-                              /*A*/ NextAction::array(0, new NextAction("readiness"), nullptr),
-                              /*C*/ nullptr);
-    }
-
-    static ActionNode* aspect_of_the_pack([[maybe_unused]] PlayerbotAI* botAI)
-    {
-        return new ActionNode("aspect of the pack",
-                              /*P*/ nullptr,
-                              /*A*/ NextAction::array(0, new NextAction("aspect of the cheetah"), nullptr),
-                              /*C*/ nullptr);
-    }
-};
+    private:
+        ACTION_NODE_A(aspect_of_the_iron_hawk, "aspect of the iron hawk", "aspect of the hawk");
+    };
+}
 
 GenericHunterNonCombatStrategy::GenericHunterNonCombatStrategy(PlayerbotAI* botAI) : NonCombatStrategy(botAI)
 {
@@ -44,19 +31,14 @@ void GenericHunterNonCombatStrategy::InitTriggers(std::vector<TriggerNode*>& tri
 {
     NonCombatStrategy::InitTriggers(triggers);
 
-    triggers.push_back(new TriggerNode("trueshot aura", NextAction::array(0, new NextAction("trueshot aura", 2.0f), nullptr)));
-    triggers.push_back(new TriggerNode("often", NextAction::array(0, new NextAction("apply oil", 1.0f), nullptr)));
-    triggers.push_back(new TriggerNode("low ammo", NextAction::array(0, new NextAction("say::low ammo", ACTION_NORMAL), nullptr)));
-    triggers.push_back(new TriggerNode("no track", NextAction::array(0, new NextAction("track humanoids", ACTION_NORMAL), nullptr)));
-    // triggers.push_back(new TriggerNode("no ammo", NextAction::array(0, new NextAction("switch to melee",
-    // ACTION_NORMAL + 1), new NextAction("say::no ammo", ACTION_NORMAL), nullptr))); triggers.push_back(new
-    // TriggerNode("has ammo", NextAction::array(0, new NextAction("switch to ranged", ACTION_NORMAL), nullptr)));
+    triggers.push_back(new TriggerNode("no aspect", NextAction::array(0, new NextAction("aspect of the iron hawk", 2.0f), nullptr)));
+    triggers.push_back(new TriggerNode("auto shot dead target", NextAction::array(0, new NextAction("stop auto shot", 50.0f), nullptr)));
 }
 
 void HunterPetStrategy::InitTriggers(std::vector<TriggerNode*>& triggers)
 {
-    triggers.push_back(new TriggerNode("no pet", NextAction::array(0, new NextAction("call pet 1", 60.0f), nullptr)));
+    triggers.push_back(new TriggerNode("hunter no pet", NextAction::array(0, new NextAction("call pet 1", 60.0f), nullptr)));
+    triggers.push_back(new TriggerNode("hunter pet dead", NextAction::array(0, new NextAction("revive pet", 60.0f), nullptr)));
+    triggers.push_back(new TriggerNode("hunter pet low health", NextAction::array(0, new NextAction("mend pet", 60.0f), nullptr)));
     triggers.push_back(new TriggerNode("has pet", NextAction::array(0, new NextAction("toggle pet spell", 60.0f), nullptr)));
-    triggers.push_back(new TriggerNode("hunters pet medium health", NextAction::array(0, new NextAction("mend pet", 60.0f), nullptr)));
-    triggers.push_back(new TriggerNode("hunters pet dead", NextAction::array(0, new NextAction("revive pet", 60.0f), nullptr)));
 }

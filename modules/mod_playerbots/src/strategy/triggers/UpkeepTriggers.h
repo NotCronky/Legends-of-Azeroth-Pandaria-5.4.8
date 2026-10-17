@@ -1,5 +1,5 @@
-#ifndef _PLAYERBOT_VENDORTRIGGERS_H
-#define _PLAYERBOT_VENDORTRIGGERS_H
+#ifndef _PLAYERBOT_UPKEEPTRIGGERS_H
+#define _PLAYERBOT_UPKEEPTRIGGERS_H
 
 #include "Trigger.h"
 
@@ -19,6 +19,15 @@ class CanSellTrigger : public Trigger
 {
 public:
     CanSellTrigger(PlayerbotAI* botAI) : Trigger(botAI, "can sell", 5) {}
+
+    bool IsActive() override;
+};
+
+// Mounted while fighting
+class MountedTrigger : public Trigger
+{
+public:
+    MountedTrigger(PlayerbotAI* botAI) : Trigger(botAI, "mounted") {}
 
     bool IsActive() override;
 };

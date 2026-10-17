@@ -11,7 +11,7 @@
 #include "GenericTriggers.h"
 #include "HealthTriggers.h"
 #include "LootTriggers.h"
-#include "VendorTriggers.h"
+#include "UpkeepTriggers.h"
 #include "RangeTriggers.h"
 #include "NewRpgTriggers.h"
 
@@ -28,6 +28,7 @@ public:
         creators["loot roll"] = &TriggerContext::loot_roll;
         creators["can repair"] = &TriggerContext::can_repair;
         creators["can sell"] = &TriggerContext::can_sell;
+        creators["mounted"] = &TriggerContext::mounted;
         creators["random"] = &TriggerContext::Random;
         creators["seldom"] = &TriggerContext::seldom;
         creators["often"] = &TriggerContext::often;
@@ -119,6 +120,7 @@ private:
     static Trigger* loot_roll(PlayerbotAI* botAI) { return new LootRollTrigger(botAI); }
     static Trigger* can_repair(PlayerbotAI* botAI) { return new CanRepairTrigger(botAI); }
     static Trigger* can_sell(PlayerbotAI* botAI) { return new CanSellTrigger(botAI); }
+    static Trigger* mounted(PlayerbotAI* botAI) { return new MountedTrigger(botAI); }
     static Trigger* Timer(PlayerbotAI* botAI) { return new TimerTrigger(botAI); }
     static Trigger* Random(PlayerbotAI* botAI) { return new RandomTrigger(botAI, "random", 20); }
     static Trigger* seldom(PlayerbotAI* botAI) { return new RandomTrigger(botAI, "seldom", 300); }

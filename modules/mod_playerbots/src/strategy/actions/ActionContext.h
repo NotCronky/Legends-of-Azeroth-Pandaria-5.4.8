@@ -65,6 +65,7 @@ public:
         creators["healthstone"] = &ActionContext::healthstone;
         creators["sell junk"] = &ActionContext::sell_junk;
         creators["check mount state"] = &ActionContext::check_mount_state;
+        creators["dismount"] = &ActionContext::dismount;
 
         creators["tank face"] = &ActionContext::tank_face;
         creators["tank assist"] = &ActionContext::tank_assist;
@@ -128,6 +129,7 @@ private:
     static Action* healthstone(PlayerbotAI* botAI) { return new UseHealthstoneAction(botAI); }
     static Action* sell_junk(PlayerbotAI* botAI) { return new SellJunkAction(botAI); }
     static Action* check_mount_state(PlayerbotAI* botAI) { return new CheckMountStateAction(botAI); }
+    static Action* dismount(PlayerbotAI* botAI) { return new DismountAction(botAI); }
 
     static Action* tank_face(PlayerbotAI* botAI) { return new TankFaceAction(botAI); }
     static Action* tank_assist(PlayerbotAI* botAI) { return new TankAssistAction(botAI); }

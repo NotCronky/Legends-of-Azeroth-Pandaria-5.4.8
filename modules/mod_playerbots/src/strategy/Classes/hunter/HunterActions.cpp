@@ -6,41 +6,61 @@
 #include "HunterActions.h"
 
 #include "Event.h"
-#include "GenericSpellActions.h"
 #include "Playerbots.h"
-
-bool CastHuntersMarkAction::isUseful() { return CastDebuffSpellAction::isUseful(); }
-
-bool CastViperStingAction::isUseful()
-{
-    return AI_VALUE2(uint8, "mana", "self target") < 50 && AI_VALUE2(uint8, "mana", "current target") >= 30;
-}
-
-bool CastAspectOfTheCheetahAction::isUseful()
-{
-    return !botAI->HasAnyAuraOf(GetTarget(), "aspect of the cheetah", "aspect of the pack", nullptr);
-}
-
-Value<Unit*>* CastFreezingTrap::GetTargetValue() { return context->GetValue<Unit*>("cc target", "freezing trap"); }
 
 bool CastAutoShotAction::isUseful()
 {
     if (botAI->IsInVehicle() && !botAI->IsInVehicle(false, false, true))
         return false;
 
-    if (AI_VALUE(Unit*, "current target") && bot->GetCurrentSpell(CURRENT_AUTOREPEAT_SPELL) &&
-        bot->GetCurrentSpell(CURRENT_AUTOREPEAT_SPELL)->m_targets.GetUnitTargetGUID() ==
-            AI_VALUE(Unit*, "current target")->GetGUID())
-    {
+    // Already shooting at the current target
+    Unit* target = AI_VALUE(Unit*, "current target");
+    if (!target)
         return false;
-    }
+
+    Spell* autoRepeat = bot->GetCurrentSpell(CURRENT_AUTOREPEAT_SPELL);
+    if (autoRepeat && autoRepeat->m_targets.GetUnitTargetGUID() == target->GetGUID())
+        return false;
+
     return AI_VALUE(uint32, "active spell") != AI_VALUE2(uint32, "spell id", getName());
 }
 
-Value<Unit*>* CastScareBeastCcAction::GetTargetValue() { return context->GetValue<Unit*>("cc target", "scare beast"); }
+bool StopAutoShotAction::Execute(Event /*event*/)
+{
+    bot->InterruptSpell(CURRENT_AUTOREPEAT_SPELL);
+    return true;
+}
 
-bool CastScareBeastCcAction::Execute(Event event) { return botAI->CastSpell("scare beast", GetTarget()); }
+bool CastCallPetAction::isUseful()
+{
+    // Calling takes a moment; don't recast it while the pet appears
+    return getMSTimeDiff(lastCall, getMSTime()) > 5 * IN_MILLISECONDS && bot->GetPetIdBySlot(PET_SLOT_ACTIVE_FIRST);
+}
 
-bool CastWingClipAction::isUseful() { return CastSpellAction::isUseful() && !botAI->HasAura(spell, GetTarget()); }
+bool CastCallPetAction::Execute(Event event)
+{
+    bool const calledRecently = lastCall && getMSTimeDiff(lastCall, getMSTime()) < 15 * IN_MILLISECONDS;
+    lastCall = getMSTime();
+    if (calledRecently && botAI->CastSpell("revive pet", bot))
+        return true;
 
-NextAction** CastWingClipAction::getPrerequisites() { return nullptr; }
+    return CastBuffSpellAction::Execute(event);
+}
+
+bool CastBestialWrathAction::isUseful()
+{
+    Pet* pet = bot->GetPet();
+    return pet && pet->IsAlive() && bot->IsInCombat() && CastBuffSpellAction::isUseful();
+}
+
+bool CastKillCommandAction::isUseful()
+{
+    Pet* pet = bot->GetPet();
+    return pet && pet->IsAlive() && CastSpellAction::isUseful();
+}
+
+bool CastAspectOfTheHawkAction::isUseful()
+{
+    // The talent replaces it
+    return !bot->HasSpell(109260) /*Aspect of the Iron Hawk*/ && CastBuffSpellAction::isUseful();
+}

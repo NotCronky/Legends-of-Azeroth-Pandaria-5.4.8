@@ -104,8 +104,18 @@ bool CastSpellAction::isPossible()
         return false;
     }
 
-    Spell* currentSpell = bot->GetCurrentSpell(CURRENT_GENERIC_SPELL);
-    return botAI->CanCastSpell(spell, GetTarget());
+    Unit* target = GetTarget();
+    if (!botAI->CanCastSpell(spell, target))
+        return false;
+
+    // CanCastSpell lets out of range casts through; don't cast them, so reaching the target comes first
+    if (target && target != bot)
+        if (SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(AI_VALUE2(uint32, "spell id", spell)))
+            if (spellInfo->RangeEntry && spellInfo->RangeEntry->ID != 1 /*self only*/ &&
+                !bot->IsWithinCombatRange(target, bot->GetSpellMaxRangeForTarget(target, spellInfo)))
+                return false;
+
+    return true;
 }
 
 bool CastSpellAction::isUseful()

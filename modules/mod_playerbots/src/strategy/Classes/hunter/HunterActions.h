@@ -10,129 +10,100 @@
 #include "GenericSpellActions.h"
 
 class PlayerbotAI;
-class Unit;
 
-// BEGIN_RANGED_SPELL_ACTION(CastHuntersMarkAction, "hunter's mark")
-// END_SPELL_ACTION()
-
-class CastHuntersMarkAction : public CastDebuffSpellAction
-{
-public:
-    CastHuntersMarkAction(PlayerbotAI* botAI) : CastDebuffSpellAction(botAI, "hunter's mark") {}
-    bool isUseful() override;
-};
+// Start shooting; it repeats on its own until the target changes
 class CastAutoShotAction : public CastSpellAction
 {
 public:
     CastAutoShotAction(PlayerbotAI* botAI) : CastSpellAction(botAI, "auto shot") {}
+
     ActionThreatType getThreatType() override { return ActionThreatType::None; }
     bool isUseful() override;
 };
 
-BEGIN_RANGED_SPELL_ACTION(CastArcaneShotAction, "arcane shot")
-END_SPELL_ACTION()
-
-class CastExplosiveShotAction : public CastDebuffSpellAction
+class StopAutoShotAction : public Action
 {
 public:
-    CastExplosiveShotAction(PlayerbotAI* botAI) : CastDebuffSpellAction(botAI, "explosive shot", true, 0.0f) {}
+    StopAutoShotAction(PlayerbotAI* botAI) : Action(botAI, "stop auto shot") {}
+
+    bool Execute(Event event) override;
 };
 
-BEGIN_RANGED_SPELL_ACTION(CastAimedShotAction, "aimed shot")
-END_SPELL_ACTION()
-
-BEGIN_RANGED_SPELL_ACTION(CastChimeraShotAction, "chimera shot")
-END_SPELL_ACTION()
-
-class CastConcussiveShotAction : public CastSnareSpellAction
-{
-public:
-    CastConcussiveShotAction(PlayerbotAI* botAI) : CastSnareSpellAction(botAI, "concussive shot") {}
-};
-
-BEGIN_RANGED_SPELL_ACTION(CastDistractingShotAction, "distracting shot")
-END_SPELL_ACTION()
-
-BEGIN_RANGED_SPELL_ACTION(CastMultiShotAction, "multi-shot")
-END_SPELL_ACTION()
-
-BEGIN_RANGED_SPELL_ACTION(CastVolleyAction, "volley")
-ActionThreatType getThreatType() override { return ActionThreatType::Aoe; }
-END_SPELL_ACTION()
-
+// -- shots
+SPELL_ACTION(CastArcaneShotAction, "arcane shot");
+SPELL_ACTION(CastSteadyShotAction, "steady shot");
+SPELL_ACTION(CastCobraShotAction, "cobra shot");
+SPELL_ACTION(CastKillShotAction, "kill shot");
+SPELL_ACTION(CastMultiShotAction, "multi-shot");
+SPELL_ACTION(CastChimeraShotAction, "chimera shot");
+SPELL_ACTION(CastAimedShotAction, "aimed shot");
+SPELL_ACTION(CastExplosiveShotAction, "explosive shot");
+DEBUFF_CHECKISOWNER_ACTION(CastBlackArrowAction, "black arrow");
 DEBUFF_CHECKISOWNER_ACTION(CastSerpentStingAction, "serpent sting");
+DEBUFF_ACTION(CastHuntersMarkAction, "hunter's mark");
+SNARE_ACTION(CastConcussiveShotAction, "concussive shot");
+SPELL_ACTION(CastCounterShotAction, "counter shot");
+SPELL_ACTION(CastTranquilizingShotAction, "tranquilizing shot");
 
-BEGIN_RANGED_SPELL_ACTION(CastWyvernStingAction, "wyvern sting")
-END_SPELL_ACTION()
+// -- talents
+SPELL_ACTION(CastGlaiveTossAction, "glaive toss");
+SPELL_ACTION(CastPowershotAction, "powershot");
+SPELL_ACTION(CastBarrageAction, "barrage");
+SPELL_ACTION(CastMurderOfCrowsAction, "a murder of crows");
+SPELL_ACTION(CastLynxRushAction, "lynx rush");
+SPELL_ACTION(CastDireBeastAction, "dire beast");
+BUFF_ACTION(CastFervorAction, "fervor");
 
-BEGIN_RANGED_SPELL_ACTION(CastViperStingAction, "viper sting")
-bool isUseful() override;
-END_SPELL_ACTION()
+// -- cooldowns
+BUFF_ACTION(CastRapidFireAction, "rapid fire");
+BUFF_ACTION(CastFocusFireAction, "focus fire");
+SPELL_ACTION(CastStampedeAction, "stampede");
+BUFF_ACTION(CastDeterrenceAction, "deterrence");
+BUFF_ACTION(CastFeignDeathAction, "feign death");
 
-BEGIN_RANGED_SPELL_ACTION(CastScorpidStingAction, "scorpid sting")
-END_SPELL_ACTION()
-
-BEGIN_RANGED_SPELL_ACTION(CastSteadyShotAction, "steady shot")
-END_SPELL_ACTION()
-
-BEGIN_RANGED_SPELL_ACTION(CastKillShotAction, "kill shot")
-END_SPELL_ACTION()
-
-BEGIN_RANGED_SPELL_ACTION(CastSilencingShotAction, "silencing shot")
-END_SPELL_ACTION()
-
-BEGIN_RANGED_SPELL_ACTION(CastTranquilizingShotAction, "tranquilizing shot")
-END_SPELL_ACTION()
-
-class CastAspectOfTheHawkAction : public CastBuffSpellAction
+// Bestial Wrath enrages the pet; cast on the bot
+class CastBestialWrathAction : public CastBuffSpellAction
 {
 public:
-    CastAspectOfTheHawkAction(PlayerbotAI* botAI) : CastBuffSpellAction(botAI, "aspect of the hawk") {}
-};
-
-class CastAspectOfTheMonkeyAction : public CastBuffSpellAction
-{
-public:
-    CastAspectOfTheMonkeyAction(PlayerbotAI* botAI) : CastBuffSpellAction(botAI, "aspect of the monkey") {}
-};
-
-class CastAspectOfTheDragonhawkAction : public CastBuffSpellAction
-{
-public:
-    CastAspectOfTheDragonhawkAction(PlayerbotAI* botAI) : CastBuffSpellAction(botAI, "aspect of the dragonhawk") {}
-};
-
-class CastAspectOfTheWildAction : public CastBuffSpellAction
-{
-public:
-    CastAspectOfTheWildAction(PlayerbotAI* botAI) : CastBuffSpellAction(botAI, "aspect of the wild") {}
-};
-
-class CastAspectOfTheCheetahAction : public CastBuffSpellAction
-{
-public:
-    CastAspectOfTheCheetahAction(PlayerbotAI* botAI) : CastBuffSpellAction(botAI, "aspect of the cheetah") {}
+    CastBestialWrathAction(PlayerbotAI* botAI) : CastBuffSpellAction(botAI, "bestial wrath") {}
 
     bool isUseful() override;
 };
 
-class CastAspectOfThePackAction : public CastBuffSpellAction
+// Kill Command: the pet attacks the target
+class CastKillCommandAction : public CastSpellAction
 {
 public:
-    CastAspectOfThePackAction(PlayerbotAI* botAI) : CastBuffSpellAction(botAI, "aspect of the pack") {}
+    CastKillCommandAction(PlayerbotAI* botAI) : CastSpellAction(botAI, "kill command") {}
+
+    bool isUseful() override;
 };
 
-class CastAspectOfTheViperAction : public CastBuffSpellAction
+// -- aspects: Hawk, or Iron Hawk with the talent
+class CastAspectOfTheHawkAction : public CastBuffSpellAction
 {
 public:
-    CastAspectOfTheViperAction(PlayerbotAI* botAI) : CastBuffSpellAction(botAI, "aspect of the viper") {}
+    CastAspectOfTheHawkAction(PlayerbotAI* botAI) : CastBuffSpellAction(botAI, "aspect of the hawk") {}
+
+    bool isUseful() override;
 };
 
+BUFF_ACTION(CastAspectOfTheIronHawkAction, "aspect of the iron hawk");
+
+// -- pet
+// Call the pet in the first slot; if a call a moment ago brought nothing, it is dead: revive it
 class CastCallPetAction : public CastBuffSpellAction
 {
 public:
     CastCallPetAction(PlayerbotAI* botAI) : CastBuffSpellAction(botAI, "call pet 1") {}
+
+    bool Execute(Event event) override;
+    bool isUseful() override;
+
+private:
+    uint32 lastCall = 0;
 };
+BUFF_ACTION(CastRevivePetAction, "revive pet");
 
 class CastMendPetAction : public CastAuraSpellAction
 {
@@ -142,118 +113,11 @@ public:
     std::string const GetTargetName() override { return "pet target"; }
 };
 
-class CastKillCommandAction : public CastAuraSpellAction
-{
-public:
-    CastKillCommandAction(PlayerbotAI* botAI) : CastAuraSpellAction(botAI, "kill command") {}
-
-    std::string const GetTargetName() override { return "pet target"; }
-};
-
-class CastRevivePetAction : public CastBuffSpellAction
-{
-public:
-    CastRevivePetAction(PlayerbotAI* botAI) : CastBuffSpellAction(botAI, "revive pet") {}
-};
-
-class CastTrueshotAuraAction : public CastBuffSpellAction
-{
-public:
-    CastTrueshotAuraAction(PlayerbotAI* botAI) : CastBuffSpellAction(botAI, "trueshot aura") {}
-};
-
-class CastFeignDeathAction : public CastBuffSpellAction
-{
-public:
-    CastFeignDeathAction(PlayerbotAI* botAI) : CastBuffSpellAction(botAI, "feign death") {}
-};
-
-class CastRapidFireAction : public CastBuffSpellAction
-{
-public:
-    CastRapidFireAction(PlayerbotAI* botAI) : CastBuffSpellAction(botAI, "rapid fire") {}
-};
-
-class CastDeterrenceAction : public CastBuffSpellAction
-{
-public:
-    CastDeterrenceAction(PlayerbotAI* botAI) : CastBuffSpellAction(botAI, "deterrence") {}
-};
-
-class CastReadinessAction : public CastBuffSpellAction
-{
-public:
-    CastReadinessAction(PlayerbotAI* botAI) : CastBuffSpellAction(botAI, "readiness") {}
-};
-
-class CastBlackArrow : public CastDebuffSpellAction
-{
-public:
-    CastBlackArrow(PlayerbotAI* botAI) : CastDebuffSpellAction(botAI, "black arrow", true) {}
-};
-
-class CastFreezingTrap : public CastDebuffSpellAction
-{
-public:
-    CastFreezingTrap(PlayerbotAI* botAI) : CastDebuffSpellAction(botAI, "freezing trap") {}
-
-    Value<Unit*>* GetTargetValue() override;
-};
-
-class CastWingClipAction : public CastSpellAction
-{
-public:
-    CastWingClipAction(PlayerbotAI* botAI) : CastSpellAction(botAI, "wing clip") {}
-
-    bool isUseful() override;
-    NextAction** getPrerequisites() override;
-};
-
-class CastRaptorStrikeAction : public CastSpellAction
-{
-public:
-    CastRaptorStrikeAction(PlayerbotAI* botAI) : CastSpellAction(botAI, "raptor strike") {}
-};
-
-class CastMongooseBiteAction : public CastSpellAction
-{
-public:
-    CastMongooseBiteAction(PlayerbotAI* botAI) : CastSpellAction(botAI, "mongoose bite") {}
-};
-
-class CastSerpentStingOnAttackerAction : public CastDebuffSpellOnAttackerAction
-{
-public:
-    CastSerpentStingOnAttackerAction(PlayerbotAI* botAI) : CastDebuffSpellOnAttackerAction(botAI, "serpent sting", true)
-    {
-    }
-};
-
-class CastBestialWrathAction : public CastBuffSpellAction
-{
-public:
-    CastBestialWrathAction(PlayerbotAI* botAI) : CastBuffSpellAction(botAI, "bestial wrath") {}
-    std::string const GetTargetName() override { return "pet target"; }
-};
-
-class CastScareBeastAction : public CastSpellAction
-{
-public:
-    CastScareBeastAction(PlayerbotAI* botAI) : CastSpellAction(botAI, "scare beast") {}
-};
-
-class CastScareBeastCcAction : public CastSpellAction
-{
-public:
-    CastScareBeastCcAction(PlayerbotAI* botAI) : CastSpellAction(botAI, "scare beast on cc") {}
-
-    Value<Unit*>* GetTargetValue() override;
-    bool Execute(Event event) override;
-};
-
+// Threat from the bot's shots goes to the tank
 class CastMisdirectionOnMainTankAction : public BuffOnMainTankAction
 {
 public:
-    CastMisdirectionOnMainTankAction(PlayerbotAI* ai) : BuffOnMainTankAction(ai, "misdirection", true) {}
+    CastMisdirectionOnMainTankAction(PlayerbotAI* botAI) : BuffOnMainTankAction(botAI, "misdirection", true) {}
 };
+
 #endif

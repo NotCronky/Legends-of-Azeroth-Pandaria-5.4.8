@@ -25,4 +25,14 @@ private:
     uint32 FindMountSpell(bool flying);
 };
 
+// In combat: get off the mount to fight
+class DismountAction : public Action
+{
+public:
+    DismountAction(PlayerbotAI* botAI) : Action(botAI, "dismount") {}
+
+    bool Execute(Event event) override;
+    bool isUseful() override;
+};
+
 #endif
