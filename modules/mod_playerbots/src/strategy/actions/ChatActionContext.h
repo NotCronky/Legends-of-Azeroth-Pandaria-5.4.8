@@ -23,6 +23,7 @@
 #include "TalentsAction.h"
 #include "TellItemCountAction.h"
 #include "TradeAction.h"
+#include "VendorActions.h"
 #include "UseItemAction.h"
 
 // Actions run by chat commands
@@ -58,6 +59,7 @@ public:
         creators["spells"] = &ChatActionContext::spells;
         creators["talents"] = &ChatActionContext::talents;
         creators["ll"] = &ChatActionContext::loot_strategy;
+        creators["repair"] = &ChatActionContext::repair;
     }
 
 private:
@@ -88,6 +90,7 @@ private:
     static Action* spells(PlayerbotAI* botAI) { return new ListSpellsAction(botAI); }
     static Action* talents(PlayerbotAI* botAI) { return new TalentsAction(botAI); }
     static Action* loot_strategy(PlayerbotAI* botAI) { return new LootStrategyAction(botAI); }
+    static Action* repair(PlayerbotAI* botAI) { return new RepairAllAction(botAI); }
 };
 
 #endif

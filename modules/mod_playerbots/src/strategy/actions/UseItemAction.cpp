@@ -9,6 +9,7 @@
 #include "Event.h"
 #include "Playerbots.h"
 #include "ScriptMgr.h"
+#include "SpellHistory.h"
 #include "SpellInfo.h"
 
 bool UseItemAction::Execute(Event event)
@@ -70,14 +71,19 @@ bool UseItemAction::Execute(Event event)
     return UseItem(item, itemTarget);
 }
 
-bool UseItemAction::UseItem(Item* item, Item* itemTarget)
+bool UseItemAction::UseItem(Item* item, Item* itemTarget, bool quiet)
 {
     ItemTemplate const* proto = item->GetTemplate();
     std::string const link = ChatHelper::FormatItem(proto);
+    auto tell = [&](std::string const& text)
+    {
+        if (!quiet)
+            botAI->TellMaster(text);
+    };
 
     if (proto->Flags & ITEM_FLAG_HAS_LOOT)
     {
-        botAI->TellMaster("I can't open " + link + " yet");
+        tell("I can't open " + link + " yet");
         return false;
     }
 
@@ -89,26 +95,32 @@ bool UseItemAction::UseItem(Item* item, Item* itemTarget)
 
     if (!spellInfo)
     {
-        botAI->TellMaster(link + " can't be used");
+        tell(link + " can't be used");
         return false;
     }
 
     // The checks WorldSession::HandleUseItemOpcode makes before casting
     if (proto->InventoryType != INVTYPE_NON_EQUIP && !item->IsEquipped())
     {
-        botAI->TellMaster("I have to equip " + link + " to use it");
+        tell("I have to equip " + link + " to use it");
         return false;
     }
 
     if (bot->CanUseItem(item) != EQUIP_ERR_OK)
     {
-        botAI->TellMaster("I can't use " + link);
+        tell("I can't use " + link);
+        return false;
+    }
+
+    if (!bot->GetSpellHistory()->IsReady(spellInfo, proto->ItemId, false))
+    {
+        tell(link + " isn't ready yet");
         return false;
     }
 
     if (bot->IsInCombat() && !spellInfo->CanBeUsedInCombat())
     {
-        botAI->TellMaster("I can't use " + link + " in combat");
+        tell("I can't use " + link + " in combat");
         return false;
     }
 
@@ -120,7 +132,7 @@ bool UseItemAction::UseItem(Item* item, Item* itemTarget)
         Unit* target = FindHarmfulTarget();
         if (!target)
         {
-            botAI->TellMaster("I have no target for " + link);
+            tell("I have no target for " + link);
             return false;
         }
 
@@ -138,7 +150,7 @@ bool UseItemAction::UseItem(Item* item, Item* itemTarget)
         }
     }
 
-    botAI->TellMaster("Using " + link);
+    tell("Using " + link);
     if (!sScriptMgr->OnItemUse(bot, item, targets))
         bot->CastItemUseSpell(item, targets, 0, 0);
 

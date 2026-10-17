@@ -22,6 +22,13 @@ enum class HealingManaEfficiency : uint8
     SUPERIOR = 32
 };
 
+// AiPlayerbot.BotCheats
+enum class BotCheatMask : uint32
+{
+    none = 0x0,
+    food = 0x1  // eat and drink without food or water
+};
+
 class PlayerbotAIConfig
 {
 public:
@@ -59,6 +66,8 @@ public:
     bool autoEquipUpgradeLoot, freeMethodLoot, lootRollRecipe, lootRollDisenchant;
     float equipUpgradeThreshold;
     uint32 lootNeedRollLevel, lootGreedRollLevel;
+    uint32 botCheatMask;
+    bool HasCheat(BotCheatMask mask) const { return (botCheatMask & uint32(mask)) != 0; }
     bool randomBotAutologin, disableRandomLevels;
     uint32 randomBotMaxLevel, randomBotMinLevel;
     float randomBotMaxLevelChance;

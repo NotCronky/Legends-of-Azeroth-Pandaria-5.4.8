@@ -170,6 +170,14 @@ bool PlayerbotAIConfig::Initialize()
     lootRollRecipe = sConfigMgr->GetBoolDefault("AiPlayerbot.LootRollRecipe", false);
     lootRollDisenchant = sConfigMgr->GetBoolDefault("AiPlayerbot.LootRollDisenchant", false);
 
+    botCheatMask = uint32(BotCheatMask::none);
+    for (std::string cheat : split(sConfigMgr->GetStringDefault("AiPlayerbot.BotCheats", "food"), ','))
+    {
+        TrimString(cheat);
+        if (cheat == "food")
+            botCheatMask |= uint32(BotCheatMask::food);
+    }
+
     randomChangeMultiplier = sConfigMgr->GetFloatDefault("AiPlayerbot.RandomChangeMultiplier", 1.0);
 
     randomBotCombatStrategies = sConfigMgr->GetStringDefault("AiPlayerbot.RandomBotCombatStrategies", "-threat");

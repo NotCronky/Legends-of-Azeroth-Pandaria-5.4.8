@@ -96,7 +96,7 @@ void StatsAction::ListRepairCost(std::ostringstream& out)
     for (uint32 i = EQUIPMENT_SLOT_START; i < INVENTORY_SLOT_ITEM_END; ++i)
     {
         uint16 pos = ((INVENTORY_SLOT_BAG_0 << 8) | i);
-        totalCost += EstRepair(pos);
+        totalCost += EstRepair(bot, pos);
         double repair = RepairPercent(pos);
         if (repair < 100)
         {
@@ -120,7 +120,16 @@ void StatsAction::ListRepairCost(std::ostringstream& out)
 }
 
 // Same formula as Player::DurabilityRepair
-uint32 StatsAction::EstRepair(uint16 pos)
+uint32 StatsAction::RepairCost(Player* bot)
+{
+    uint32 cost = 0;
+    for (uint32 i = EQUIPMENT_SLOT_START; i < INVENTORY_SLOT_ITEM_END; ++i)
+        cost += EstRepair(bot, (INVENTORY_SLOT_BAG_0 << 8) | i);
+
+    return cost;
+}
+
+uint32 StatsAction::EstRepair(Player* bot, uint16 pos)
 {
     Item* item = bot->GetItemByPos(pos);
     if (!item)

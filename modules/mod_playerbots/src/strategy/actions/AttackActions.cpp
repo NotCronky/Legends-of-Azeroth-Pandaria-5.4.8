@@ -122,11 +122,12 @@ bool AttackAction::Attack(Unit* target, bool with_pet /*true*/)
         return false;
     }
 
-    // if (bot->IsMounted() && bot->IsWithinLOSInMap(target))
-    // {
-    //     WorldPacket emptyPacket;
-    //     bot->GetSession()->HandleCancelMountAuraOpcode(emptyPacket);
-    // }
+    // Can't fight mounted
+    if (bot->IsMounted())
+    {
+        bot->RemoveAurasByType(SPELL_AURA_MOUNTED);
+        bot->Dismount();
+    }
 
     ObjectGuid guid = target->GetGUID();
     bot->SetSelection(target->GetGUID());

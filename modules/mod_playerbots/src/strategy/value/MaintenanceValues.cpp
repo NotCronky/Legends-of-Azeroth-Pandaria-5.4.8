@@ -5,7 +5,11 @@
 
 #include "MaintenanceValues.h"
 
+#include "Bag.h"
+#include "ItemUsageValue.h"
 #include "Playerbots.h"
+#include "StatsAction.h"
+#include "VendorActions.h"
 
 bool CanMoveAroundValue::Calculate()
 {
@@ -30,30 +34,54 @@ bool ShouldHomeBindValue::Calculate()
     //return AI_VALUE2(float, "distance", "home bind") > 1000.0f;
 }
 
-bool ShouldRepairValue::Calculate()
-{
-    return false;
-    //return AI_VALUE(uint8, "durability") < 80;
-}
+bool ShouldRepairValue::Calculate() { return AI_VALUE(uint8, "durability") < 80; }
 
 bool CanRepairValue::Calculate()
 {
-    return false;
-    //return AI_VALUE(uint8, "durability") < 100 &&
-    //    AI_VALUE(uint32, "repair cost") < AI_VALUE2(uint32, "free money for", (uint32)NeedMoneyFor::repair);
+    if (AI_VALUE(uint8, "durability") >= 100 || !RepairAllAction::FindRepairNpc(botAI))
+        return false;
+
+    uint32 const cost = StatsAction::RepairCost(bot);
+    return cost && cost <= bot->GetMoney();
 }
 
-bool ShouldSellValue::Calculate()
-{
-    return false;
-    //return AI_VALUE(uint8, "bag space") > 80;
-}
+bool ShouldSellValue::Calculate() { return AI_VALUE(uint8, "bag space") > 80; }
 
 bool CanSellValue::Calculate()
 {
+    bool hasVendor = false;
+    for (ObjectGuid const& guid : AI_VALUE(GuidVector, "nearest npcs"))
+        if (bot->GetNPCIfCanInteractWith(guid, UNIT_NPC_FLAG_VENDOR))
+        {
+            hasVendor = true;
+            break;
+        }
+
+    return hasVendor && AI_VALUE(bool, "has junk");
+}
+
+bool HasJunkValue::Calculate()
+{
+    for (uint8 slot = INVENTORY_SLOT_ITEM_START; slot < INVENTORY_SLOT_ITEM_END; ++slot)
+        if (Item* item = bot->GetItemByPos(INVENTORY_SLOT_BAG_0, slot))
+            if (IsJunk(item))
+                return true;
+
+    for (uint8 bagSlot = INVENTORY_SLOT_BAG_START; bagSlot < INVENTORY_SLOT_BAG_END; ++bagSlot)
+        if (Bag* bag = bot->GetBagByPos(bagSlot))
+            for (uint32 slot = 0; slot < bag->GetBagSize(); ++slot)
+                if (Item* item = bag->GetItemByPos(slot))
+                    if (IsJunk(item))
+                        return true;
+
     return false;
-    /*return (AI_VALUE2(uint32, "item count", "usage " + std::to_string(ITEM_USAGE_VENDOR)) +
-        AI_VALUE2(uint32, "item count", "usage " + std::to_string(ITEM_USAGE_AH))) > 1;*/
+}
+
+bool HasJunkValue::IsJunk(Item* item)
+{
+    ItemTemplate const* proto = item->GetTemplate();
+    return proto->SellPrice &&
+           AI_VALUE2(ItemUsage, "item usage", ItemUsageValue::Qualify(proto->ItemId)) == ITEM_USAGE_VENDOR;
 }
 
 bool CanFightEqualValue::Calculate()

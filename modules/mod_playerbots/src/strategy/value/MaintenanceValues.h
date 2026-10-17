@@ -58,6 +58,18 @@ public:
     bool Calculate() override;
 };
 
+// Something in the bags the bot only has a use for selling
+class HasJunkValue : public BoolCalculatedValue
+{
+public:
+    HasJunkValue(PlayerbotAI* botAI) : BoolCalculatedValue(botAI, "has junk", 2 * 2000) {}
+
+    bool Calculate() override;
+
+private:
+    bool IsJunk(Item* item);
+};
+
 class CanFightEqualValue : public BoolCalculatedValue
 {
 public:

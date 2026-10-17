@@ -11,6 +11,7 @@
 #include "GenericTriggers.h"
 #include "HealthTriggers.h"
 #include "LootTriggers.h"
+#include "VendorTriggers.h"
 #include "RangeTriggers.h"
 #include "NewRpgTriggers.h"
 
@@ -25,6 +26,8 @@ public:
         creators["far from loot target"] = &TriggerContext::far_from_loot_target;
         creators["can loot"] = &TriggerContext::can_loot;
         creators["loot roll"] = &TriggerContext::loot_roll;
+        creators["can repair"] = &TriggerContext::can_repair;
+        creators["can sell"] = &TriggerContext::can_sell;
         creators["random"] = &TriggerContext::Random;
         creators["seldom"] = &TriggerContext::seldom;
         creators["often"] = &TriggerContext::often;
@@ -114,6 +117,8 @@ private:
     static Trigger* far_from_loot_target(PlayerbotAI* botAI) { return new FarFromCurrentLootTrigger(botAI); }
     static Trigger* can_loot(PlayerbotAI* botAI) { return new CanLootTrigger(botAI); }
     static Trigger* loot_roll(PlayerbotAI* botAI) { return new LootRollTrigger(botAI); }
+    static Trigger* can_repair(PlayerbotAI* botAI) { return new CanRepairTrigger(botAI); }
+    static Trigger* can_sell(PlayerbotAI* botAI) { return new CanSellTrigger(botAI); }
     static Trigger* Timer(PlayerbotAI* botAI) { return new TimerTrigger(botAI); }
     static Trigger* Random(PlayerbotAI* botAI) { return new RandomTrigger(botAI, "random", 20); }
     static Trigger* seldom(PlayerbotAI* botAI) { return new RandomTrigger(botAI, "seldom", 300); }

@@ -8,6 +8,7 @@
 #include "AccountMgr.h"
 #include "AiFactory.h"
 #include "ArenaTeam.h"
+#include "Bag.h"
 #include "DBCStores.h"
 #include "DBCStructure.h"
 #include "GuildMgr.h"
@@ -29,6 +30,7 @@
 #include "RandomItemManager.h"
 #include "SharedDefines.h"
 #include "SpellAuraDefines.h"
+#include "SpellMgr.h"
 #include "StatsWeightCalculator.h"
 #include "World.h"
   
@@ -165,6 +167,8 @@ void BotFactory::Randomize(bool incremental)
     InitTalentsTree(false);
     InitEquipment(incremental);
     InitPet();
+    InitMounts();
+    InitPotions();
  
     bot->SetMoney(urand(level * 100000, level * 5 * 100000));
     bot->SetHealth(bot->GetMaxHealth());
@@ -176,6 +180,7 @@ void BotFactory::Randomize(bool incremental)
 void BotFactory::Refresh()
 {
     InitPet();
+    InitPotions();
     bot->DurabilityRepairAll(false, 1.0f, false);
     if (bot->isDead())
         bot->ResurrectPlayer(1.0f, false);
@@ -579,6 +584,211 @@ bool BotFactory::CanEquipItem(ItemTemplate const* proto)
         return false;
 
     return true;
+}
+
+namespace
+{
+    bool IsMountSpell(uint32 spellId)
+    {
+        SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(spellId);
+        return spellInfo && spellInfo->HasAura(SPELL_AURA_MOUNTED);
+    }
+}
+
+namespace
+{
+    struct PotionEntry
+    {
+        uint32 requiredLevel;
+        uint32 itemId;
+    };
+
+    // Healing or mana potions by required level
+    std::vector<PotionEntry> BuildPotions(uint32 effect)
+    {
+        std::vector<PotionEntry> potions;
+        for (auto const& [itemId, proto] : *sObjectMgr->GetItemTemplateStore())
+        {
+            if (proto.Class != ITEM_CLASS_CONSUMABLE || proto.SubClass != ITEM_SUBCLASS_POTION ||
+                proto.Quality > ITEM_QUALITY_UNCOMMON || !proto.SellPrice || proto.Bonding == BIND_QUEST ||
+                proto.Spells[0].SpellId <= 0 || proto.Spells[1].SpellId > 0 || proto.Area || proto.Map ||
+                (proto.Flags & ITEM_PROTO_FLAG_DEPRECATED))
+                continue;
+
+            // Real potions: not fish, brews and placeholder items that happen to heal
+            std::string const& name = proto.Name1;
+            if ((name.find("Potion") == std::string::npos && name.find("Injector") == std::string::npos) ||
+                name.find("DEP") != std::string::npos || name.find("Deprecated") != std::string::npos ||
+                name.find("Test") != std::string::npos || name.find("OLD") != std::string::npos)
+                continue;
+
+            SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(proto.Spells[0].SpellId);
+            if (!spellInfo)
+                continue;
+
+            // Only the one effect: no rejuvenation potions, no potions with drawbacks
+            bool matches = false;
+            uint32 effects = 0;
+            for (uint32 i = 0; i < MAX_SPELL_EFFECTS; ++i)
+            {
+                if (!spellInfo->Effects[i].Effect)
+                    continue;
+
+                ++effects;
+                if (spellInfo->Effects[i].Effect == effect &&
+                    (effect != SPELL_EFFECT_ENERGIZE || spellInfo->Effects[i].MiscValue == POWER_MANA))
+                    matches = true;
+            }
+
+            if (matches && effects == 1)
+                potions.push_back({ proto.RequiredLevel, itemId });
+        }
+
+        std::sort(potions.begin(), potions.end(),
+                  [](PotionEntry const& a, PotionEntry const& b) { return a.requiredLevel < b.requiredLevel; });
+        return potions;
+    }
+
+    uint32 FindPotion(uint32 level, uint32 effect)
+    {
+        // Built once, read from every map thread
+        static std::vector<PotionEntry> const healing = BuildPotions(SPELL_EFFECT_HEAL);
+        static std::vector<PotionEntry> const mana = BuildPotions(SPELL_EFFECT_ENERGIZE);
+
+        // Among the highest level ones the bot can use, a random one
+        std::vector<uint32> best;
+        uint32 bestLevel = 0;
+        for (PotionEntry const& potion : effect == SPELL_EFFECT_HEAL ? healing : mana)
+        {
+            if (potion.requiredLevel > level)
+                break;
+
+            if (potion.requiredLevel != bestLevel)
+            {
+                best.clear();
+                bestLevel = potion.requiredLevel;
+            }
+            best.push_back(potion.itemId);
+        }
+
+        return best.empty() ? 0 : best[urand(0, best.size() - 1)];
+    }
+}
+
+void BotFactory::InitPotions()
+{
+    for (uint32 effect : { uint32(SPELL_EFFECT_HEAL), uint32(SPELL_EFFECT_ENERGIZE) })
+    {
+        if (effect == SPELL_EFFECT_ENERGIZE && !bot->GetMaxPower(POWER_MANA))
+            continue;
+
+        // Keep what it has until it runs out
+        FindPotionVisitor visitor(bot, effect);
+        for (uint8 slot = INVENTORY_SLOT_ITEM_START; slot < INVENTORY_SLOT_ITEM_END; ++slot)
+            if (Item* item = bot->GetItemByPos(INVENTORY_SLOT_BAG_0, slot))
+                visitor.Visit(item);
+        for (uint8 bagSlot = INVENTORY_SLOT_BAG_START; bagSlot < INVENTORY_SLOT_BAG_END; ++bagSlot)
+            if (Bag* bag = bot->GetBagByPos(bagSlot))
+                for (uint32 slot = 0; slot < bag->GetBagSize(); ++slot)
+                    if (Item* item = bag->GetItemByPos(slot))
+                        visitor.Visit(item);
+
+        if (!visitor.GetResult().empty())
+            continue;
+
+        uint32 const itemId = FindPotion(level, effect);
+        ItemTemplate const* proto = itemId ? sObjectMgr->GetItemTemplate(itemId) : nullptr;
+        if (!proto)
+            continue;
+
+        uint32 const maxCount = proto->GetMaxStackSize();
+        bot->StoreNewItemInBestSlots(itemId, urand(std::max(1u, maxCount / 2), maxCount));
+    }
+}
+
+void BotFactory::InitMounts()
+{
+    // Riding: apprentice 20, journeyman 40, expert 60, artisan 70, master 80, and the flying licenses
+    struct RidingSpell
+    {
+        uint32 level;
+        uint32 spellId;
+    };
+    static RidingSpell const riding[] = {
+        { 20, 33388 },   // Apprentice Riding
+        { 40, 33391 },   // Journeyman Riding
+        { 60, 34090 },   // Expert Riding
+        { 60, 90267 },   // Flight Master's License
+        { 68, 54197 },   // Cold Weather Flying
+        { 70, 34091 },   // Artisan Riding
+        { 80, 90265 },   // Master Riding
+        { 90, 115913 },  // Wisdom of the Four Winds
+    };
+
+    for (RidingSpell const& spell : riding)
+        if (level >= spell.level && !bot->HasSpell(spell.spellId) && sSpellMgr->GetSpellInfo(spell.spellId))
+            bot->LearnSpell(spell.spellId, false);
+
+    if (level < 20)
+        return;
+
+    bool const horde = bot->GetTeam() == HORDE;
+    std::vector<uint32> slow, fast;
+    switch (bot->GetRace())
+    {
+        case RACE_HUMAN: slow = { 470, 6648, 458, 472 }; fast = { 23228, 23227, 23229 }; break;
+        case RACE_ORC: slow = { 6654, 6653, 580 }; fast = { 23250, 23252, 23251 }; break;
+        case RACE_DWARF: slow = { 6899, 6777, 6898 }; fast = { 23238, 23239, 23240 }; break;
+        case RACE_NIGHTELF: slow = { 10789, 8394, 10793 }; fast = { 23219, 23220, 63637 }; break;
+        case RACE_UNDEAD_PLAYER: slow = { 17463, 17464, 17462 }; fast = { 17465, 23246, 66846 }; break;
+        case RACE_TAUREN: slow = { 18990, 18989, 64657 }; fast = { 23249, 23248, 23247 }; break;
+        case RACE_GNOME: slow = { 10969, 17453, 10873, 17454 }; fast = { 23225, 23223, 23222 }; break;
+        case RACE_TROLL: slow = { 10796, 10799, 8395 }; fast = { 23241, 23242, 23243 }; break;
+        case RACE_DRAENEI: slow = { 34406, 35711, 35710 }; fast = { 35713, 35712, 35714 }; break;
+        case RACE_BLOODELF: slow = { 33660, 35020, 35022, 35018 }; fast = { 35025, 35027 }; break;
+        case RACE_GOBLIN: slow = { 87090 }; fast = { 87091 }; break;  // Goblin Trike, Goblin Turbo-Trike
+        case RACE_WORGEN: slow = { 103195 }; fast = { 103196 }; break;  // Mountain Horse, Swift Mountain Horse
+        default:
+            // Pandaren: the faction's horses or wolves
+            if (horde)
+            {
+                slow = { 6654, 6653, 580 };
+                fast = { 23250, 23252, 23251 };
+            }
+            else
+            {
+                slow = { 470, 6648, 458, 472 };
+                fast = { 23228, 23227, 23229 };
+            }
+            break;
+    }
+
+    std::vector<uint32> const flying = horde ? std::vector<uint32>{ 32244, 32245, 32243 } : std::vector<uint32>{ 32235, 32239, 32240 };
+    std::vector<uint32> const fastFlying =
+        horde ? std::vector<uint32>{ 32295, 32297, 32246, 32296 } : std::vector<uint32>{ 32242, 32289, 32290, 32292 };
+
+    // One of each kind the bot can ride, unless it knows one already
+    auto learnOne = [&](std::vector<uint32> const& spells)
+    {
+        std::vector<uint32> valid;
+        for (uint32 spellId : spells)
+        {
+            if (bot->HasSpell(spellId))
+                return;
+
+            if (IsMountSpell(spellId))
+                valid.push_back(spellId);
+        }
+
+        if (!valid.empty())
+            bot->LearnSpell(valid[urand(0, valid.size() - 1)], false);
+    };
+
+    learnOne(level >= 40 ? fast : slow);
+    if (level >= 70)
+        learnOne(fastFlying);
+    else if (level >= 60)
+        learnOne(flying);
 }
 
 void BotFactory::InitEquipment(bool incremental, bool second_chance)

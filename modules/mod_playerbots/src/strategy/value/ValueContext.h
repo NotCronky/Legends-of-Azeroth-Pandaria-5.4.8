@@ -87,6 +87,7 @@ public:
         creators["always loot list"] = &ValueContext::always_loot_list;
         creators["nearest corpses"] = &ValueContext::nearest_corpses;
         creators["nearest game objects"] = &ValueContext::nearest_game_objects;
+        creators["has junk"] = &ValueContext::has_junk;
         creators["moving"] = &ValueContext::moving;
         creators["swimming"] = &ValueContext::swimming;
         creators["behind"] = &ValueContext::behind;
@@ -222,6 +223,7 @@ private:
     static UntypedValue* always_loot_list(PlayerbotAI* botAI) { return new AlwaysLootListValue(botAI); }
     static UntypedValue* nearest_corpses(PlayerbotAI* botAI) { return new NearestCorpsesValue(botAI); }
     static UntypedValue* nearest_game_objects(PlayerbotAI* botAI) { return new NearestLootableObjectsValue(botAI); }
+    static UntypedValue* has_junk(PlayerbotAI* botAI) { return new HasJunkValue(botAI); }
     static UntypedValue* rti_target(PlayerbotAI* botAI) { return new RtiTargetValue(botAI); }
     static UntypedValue* rti_cc_target(PlayerbotAI* botAI) { return new RtiCcTargetValue(botAI); }
     static UntypedValue* rti(PlayerbotAI* botAI) { return new RtiValue(botAI); }

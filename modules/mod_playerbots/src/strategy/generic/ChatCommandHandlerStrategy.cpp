@@ -55,4 +55,5 @@ ChatCommandHandlerStrategy::ChatCommandHandlerStrategy(PlayerbotAI* botAI) : Pas
     supported.push_back("spells");
     supported.push_back("talents");
     supported.push_back("ll");
+    supported.push_back("repair");
 }

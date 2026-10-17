@@ -13,9 +13,37 @@
 #include "Playerbots.h"
 #include "Random.h"
 #include "RandomPlayerbotMgr.h"
+#include "StatsAction.h"
 #include "Timer.h"
 #include "WorldPosition.h"
 #include "World.h"
+
+namespace
+{
+    // A repair NPC when the bot's gear is worn, a vendor when its bags are nearly full
+    ObjectGuid FindNeededNpc(PlayerbotAI* botAI, GuidVector const& targets)
+    {
+        AiObjectContext* context = botAI->GetAiObjectContext();
+        // Only what it can do there: pay for the repair, or has something to sell
+        Player* bot = botAI->GetBot();
+        uint32 npcFlag = 0;
+        uint32 const repairCost = AI_VALUE(bool, "should repair") ? StatsAction::RepairCost(bot) : 0;
+        if (repairCost && repairCost <= bot->GetMoney())
+            npcFlag = UNIT_NPC_FLAG_REPAIR;
+        else if (AI_VALUE(bool, "should sell") && AI_VALUE(bool, "has junk"))
+            npcFlag = UNIT_NPC_FLAG_VENDOR;
+
+        if (!npcFlag)
+            return ObjectGuid::Empty;
+
+        for (ObjectGuid const& guid : targets)
+            if (Unit* unit = botAI->GetUnit(guid))
+                if (unit->HasFlag(UNIT_FIELD_NPC_FLAGS, npcFlag))
+                    return guid;
+
+        return ObjectGuid::Empty;
+    }
+}
 
 bool TellRpgStatusAction::Execute(Event event)
 {
@@ -35,6 +63,14 @@ bool NewRpgStatusUpdateAction::Execute(Event /*event*/)
     {
         case NewRpgStatus::IDLE:
         {
+            // IDLE -> NEAR_NPC: repair or sell first when there is somewhere to do it
+            if (!FindNeededNpc(botAI, AI_VALUE(GuidVector, "possible rpg targets")).IsEmpty())
+            {
+                info.lastNearNpc = getMSTime();
+                info.status = NewRpgStatus::NEAR_NPC;
+                return true;
+            }
+
             uint32 roll = urand(1, 100);
             // IDLE -> NEAR_NPC
             if (roll <= 30)
@@ -325,7 +361,9 @@ bool NewRpgMoveNpcAction::Execute(Event /*event*/)
         if (possibleTargets.empty())
             return false;
 
-        ObjectGuid guid = possibleTargets[urand(0, possibleTargets.size() - 1)];
+        ObjectGuid guid = FindNeededNpc(botAI, possibleTargets);
+        if (guid.IsEmpty())
+            guid = possibleTargets[urand(0, possibleTargets.size() - 1)];
         Unit* unit = botAI->GetUnit(guid);
         if (!unit)
             return false;

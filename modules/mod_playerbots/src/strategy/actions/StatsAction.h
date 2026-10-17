@@ -18,11 +18,14 @@ public:
 
     bool Execute(Event event) override;
 
+    // What repairing everything would cost now
+    static uint32 RepairCost(Player* bot);
+
 private:
     void ListBagSlots(std::ostringstream& out);
     void ListXP(std::ostringstream& out);
     void ListRepairCost(std::ostringstream& out);
-    uint32 EstRepair(uint16 pos);
+    static uint32 EstRepair(Player* bot, uint16 pos);
     double RepairPercent(uint16 pos);
 };
 

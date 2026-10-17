@@ -231,8 +231,9 @@ uint8 DurabilityValue::Calculate()
         total += curDurability;
     }
 
-    if (total == 0)
-        return 0;
+    // Nothing that wears out
+    if (!totalMax)
+        return 100;
 
     return (static_cast<float>(total) / totalMax) * 100;
 }

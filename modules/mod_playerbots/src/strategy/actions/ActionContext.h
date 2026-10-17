@@ -6,9 +6,11 @@
 #include "AutoMaintenanceOnLevelupAction.h"
 #include "ChooseTargetActions.h"
 #include "FollowActions.h"
+#include "ConsumableActions.h"
 #include "EquipAction.h"
 #include "GenericActions.h"
 #include "LootActions.h"
+#include "MountActions.h"
 #include "PositionAction.h"
 #include "RtiAction.h"
 #include "MovementActions.h"
@@ -16,6 +18,7 @@
 #include "RandomBotUpdateAction.h"
 #include "ReachTargetActions.h"
 #include "StayActions.h"
+#include "VendorActions.h"
 
 class PlayerbotAI;
 class ActionContext : public NamedObjectContext<Action>
@@ -54,6 +57,14 @@ public:
         creators["add gathering loot"] = &ActionContext::add_gathering_loot;
         creators["loot roll"] = &ActionContext::loot_roll;
         creators["equip upgrades"] = &ActionContext::equip_upgrades;
+
+        creators["food"] = &ActionContext::food;
+        creators["drink"] = &ActionContext::drink;
+        creators["healing potion"] = &ActionContext::healing_potion;
+        creators["mana potion"] = &ActionContext::mana_potion;
+        creators["healthstone"] = &ActionContext::healthstone;
+        creators["sell junk"] = &ActionContext::sell_junk;
+        creators["check mount state"] = &ActionContext::check_mount_state;
 
         creators["tank face"] = &ActionContext::tank_face;
         creators["tank assist"] = &ActionContext::tank_assist;
@@ -109,6 +120,14 @@ private:
     static Action* add_gathering_loot(PlayerbotAI* botAI) { return new AddGatheringLootAction(botAI); }
     static Action* loot_roll(PlayerbotAI* botAI) { return new LootRollAction(botAI); }
     static Action* equip_upgrades(PlayerbotAI* botAI) { return new EquipUpgradesAction(botAI); }
+
+    static Action* food(PlayerbotAI* botAI) { return new EatAction(botAI); }
+    static Action* drink(PlayerbotAI* botAI) { return new DrinkAction(botAI); }
+    static Action* healing_potion(PlayerbotAI* botAI) { return new UseHealingPotionAction(botAI); }
+    static Action* mana_potion(PlayerbotAI* botAI) { return new UseManaPotionAction(botAI); }
+    static Action* healthstone(PlayerbotAI* botAI) { return new UseHealthstoneAction(botAI); }
+    static Action* sell_junk(PlayerbotAI* botAI) { return new SellJunkAction(botAI); }
+    static Action* check_mount_state(PlayerbotAI* botAI) { return new CheckMountStateAction(botAI); }
 
     static Action* tank_face(PlayerbotAI* botAI) { return new TankFaceAction(botAI); }
     static Action* tank_assist(PlayerbotAI* botAI) { return new TankAssistAction(botAI); }

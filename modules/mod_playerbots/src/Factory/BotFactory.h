@@ -18,6 +18,10 @@ public:
     void InitEquipment(bool incremental, bool second_chance = false);
     void InitPet();
     void InitTalentsTree(bool reset);
+    // Riding skills and flying licenses for the bot's level, and a ground and a flying mount
+    void InitMounts();
+    // A stack of the best healing potions, and mana potions for mana users, if the bot has none
+    void InitPotions();
 private:
     void Prepare();
     void CancelAuras();

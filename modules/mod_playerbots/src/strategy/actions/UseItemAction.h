@@ -17,12 +17,15 @@ class Unit;
 class UseItemAction : public InventoryAction
 {
 public:
-    UseItemAction(PlayerbotAI* botAI) : InventoryAction(botAI, "use") {}
+    UseItemAction(PlayerbotAI* botAI, std::string const name = "use") : InventoryAction(botAI, name) {}
 
     bool Execute(Event event) override;
 
+protected:
+    // Quiet: no replies, for the bot's own upkeep (food, potions)
+    bool UseItem(Item* item, Item* itemTarget, bool quiet = false);
+
 private:
-    bool UseItem(Item* item, Item* itemTarget);
     Unit* FindHarmfulTarget();
 };
 

@@ -21,6 +21,7 @@
 #include "PassiveStrategy.h"
 #include "NewRpgStrategy.h"
 #include "TankAssistStrategy.h"
+#include "UpkeepStrategies.h"
 #include "ThreatStrategy.h"
 #include "HelloStrategy.h"
 #include "RunawayStrategy.h"
@@ -56,6 +57,10 @@ public:
         creators["move random"] = &StrategyContext::move_random;
         creators["loot"] = &StrategyContext::loot;
         creators["gather"] = &StrategyContext::gather;
+        creators["food"] = &StrategyContext::food;
+        creators["potions"] = &StrategyContext::potions;
+        creators["vendor"] = &StrategyContext::vendor;
+        creators["mount"] = &StrategyContext::mount;
     }
 
 private:
@@ -68,6 +73,10 @@ private:
     static Strategy* move_random(PlayerbotAI* botAI) { return new MoveRandomStrategy(botAI); }
     static Strategy* loot(PlayerbotAI* botAI) { return new LootNonCombatStrategy(botAI); }
     static Strategy* gather(PlayerbotAI* botAI) { return new GatherStrategy(botAI); }
+    static Strategy* food(PlayerbotAI* botAI) { return new UseFoodStrategy(botAI); }
+    static Strategy* potions(PlayerbotAI* botAI) { return new UsePotionsStrategy(botAI); }
+    static Strategy* vendor(PlayerbotAI* botAI) { return new VendorStrategy(botAI); }
+    static Strategy* mount(PlayerbotAI* botAI) { return new MountStrategy(botAI); }
     // --
     
     static Strategy* world_packet(PlayerbotAI* botAI) { return new WorldPacketHandlerStrategy(botAI); }

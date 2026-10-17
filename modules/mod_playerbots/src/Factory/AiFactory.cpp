@@ -233,7 +233,7 @@ void AiFactory::AddDefaultCombatStrategies(Player* player, PlayerbotAI* const fa
     if (!player->InBattleground())
     {
         // "racials", "cast time", "duel" and "avoid aoe" are added back as they get ported
-        engine->addStrategiesNoInit("chat", "default", "boost", nullptr);
+        engine->addStrategiesNoInit("chat", "default", "boost", "potions", nullptr);
     }
     engine->addStrategy("formation", false);
 
@@ -561,8 +561,9 @@ void AiFactory::AddDefaultNonCombatStrategies(Player* player, PlayerbotAI* const
     }
     if (!player->InBattleground())
     {
-        // "food", "quest", "duel", "mount" and "emote" are added back as they get ported
-        nonCombatEngine->addStrategiesNoInit("nc", "chat", "follow", "default", "loot", "gather", "buff", nullptr);
+        // "quest", "duel" and "emote" are added back as they get ported
+        nonCombatEngine->addStrategiesNoInit("nc", "food", "chat", "follow", "default", "loot", "gather", "vendor", "buff",
+                                             "mount", nullptr);
     }
 
     // Random bots that aren't following anyone live on their own. Bots a player added (addclass) follow that player

@@ -281,6 +281,11 @@ AiPlayerbot.LootRollRecipe = 0
 # Default: 0 (disabled)
 AiPlayerbot.LootRollDisenchant = 0
 
+# Cheats for all bots, separated by commas
+# "food": eat and drink without food or water in the bags
+# Default: "food"
+AiPlayerbot.BotCheats = "food"
+
 #
 #
 #
