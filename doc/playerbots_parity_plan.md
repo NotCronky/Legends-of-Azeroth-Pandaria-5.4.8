@@ -60,7 +60,8 @@ was left out are in the results sections at the end.
 - **An early worldserver crash seen once, not reproduced:** while the hunter AI was being written,
   the server crashed within minutes in 4 of 7 runs, with creature event lists or the heap corrupted
   on map threads. The next day the same code ran clean 8 times (one run for 20 minutes), including
-  hunters re-randomizing and taming new pets; the cause was not found. Details in the Phase 3 results.
+  hunters re-randomizing and taming new pets, and 3 more times (28 minutes) with the part 2 fixes; the
+  cause was not found. Details in the Phase 3 results.
 - Group rolls, `ll`, `s vendor`, `repair`, potions in combat and mounting with a player have been built
   and run, but not yet tested in game.
 
@@ -595,8 +596,44 @@ on map threads: `EventProcessor::AddEvent` from `Transport::UpdatePassengerPosit
 `EventProcessor::Update` from `Creature::Update`, and jemalloc freeing in `Strategy::GetAction`. The
 committed build before this work ran clean 4 times. The next day nothing crashed in 8 runs: with the
 hunter AI switched off (2), without Stampede (2), with all of it (1), with hunters re-randomizing with
-their pets (1) and taming new ones (1), and for 20 minutes (1). Ruled out: threading in `InitPet` (the
+their pets (1) and taming new ones (1), and for 20 minutes (1); nor in 3 more runs (28 minutes) with
+the part 2 fixes, the last with hunters casting Stampede. Ruled out: threading in `InitPet` (the
 bot manager runs on the world thread while no map updates), duplicate pets in a slot, and Stampede
 copies of the current pet (bots have one pet and not the glyph). If it comes back, build with
 `-DCMAKE_BUILD_TYPE=Debug` or AddressSanitizer (without jemalloc) to catch the corruption where it
 happens; a pet riding a transport fits the first stack.
+
+## Phase 3 results, part 2: casting fixes (2026-10-17)
+
+Two of the gaps from part 1 were bugs every class has. Built and run with 50 random bots for 10 minutes.
+
+### Done
+
+- **Instant casts counted as failures:** `PlayerbotAI::CastSpell` checked the spell after `prepare()`,
+  which has already cast an instant spell and started its cooldown, so every instant spell with a
+  cooldown was reported as failed and the engine treated it that way. A cast now counts if the spell is
+  being cast or started a global or spell cooldown; the old check remains for the rest.
+- **Unaffordable spells:** `CastSpellAction::isPossible` skips spells the bot doesn't have the power
+  for, so the next action runs instead of a cast the server refuses. `CanCastSpell` ignores the cost on
+  purpose (checking it during a cast can use up proc charges); working the cost out outside a cast
+  doesn't.
+- **Kill Command** waits for the pet to be within 25 yards of the target; otherwise the spell fails
+  without a reason (`SPELL_FAILED_DONT_REPORT`, 48 times in 20 minutes).
+
+### Test results
+
+| Spell | Casts in 10 minutes, before | After |
+|---|---|---|
+| Explosive Shot (3 Survival hunters) | 0 to 6 | 53 |
+| Chimera Shot (Marksmanship) | 0 (39 failures for focus) | 31 |
+| Kill Shot, Glaive Toss, Black Arrow, Counter Shot, Multi-Shot, Deterrence | none | 12, 9, 5, 5, 8, 2 |
+| Rapid Fire, Stampede | none | 6, 1 |
+
+What fails now is harmless: proc spells (Piercing Shots, Wild Quiver, Concussive Barrage) and Steady
+Shot when the target dies, and Auto Shot during Deterrence.
+
+### Not done
+
+- Beast Mastery wasn't tested after the fix: the one Beast Mastery bot re-randomized to Survival.
+- Aimed Shot only goes with Fire! (Master Marksman, 34487); not yet seen.
+- Steady Shot is started on targets about to die.
