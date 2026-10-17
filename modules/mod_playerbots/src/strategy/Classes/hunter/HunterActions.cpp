@@ -55,8 +55,10 @@ bool CastBestialWrathAction::isUseful()
 
 bool CastKillCommandAction::isUseful()
 {
+    // The spell fails (without saying why) unless the pet is within 25 yards of the target
     Pet* pet = bot->GetPet();
-    return pet && pet->IsAlive() && CastSpellAction::isUseful();
+    Unit* target = GetTarget();
+    return pet && pet->IsAlive() && target && pet->IsWithinDist(target, 25.0f, true) && CastSpellAction::isUseful();
 }
 
 bool CastAspectOfTheHawkAction::isUseful()

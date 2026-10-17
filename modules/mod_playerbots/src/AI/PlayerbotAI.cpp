@@ -2519,8 +2519,17 @@ bool PlayerbotAI::CastSpell(uint32 spellId, Unit* target, Item* itemTarget)
         return false;
     }
 
+    // An instant spell is cast in prepare(), so checking it afterwards finds it on cooldown; it was cast
+    // if it started casting or started a cooldown
+    bool const hadGlobalCooldown = bot->GetGlobalCooldownMgr().HasGlobalCooldown(spellInfo);
+    bool const hadCooldown = bot->HasSpellCooldown(spellId);
     spell->prepare(&targets);
-    SpellCastResult result = spell->CheckCast(false);
+    bool const started = bot->GetCurrentSpell(CURRENT_GENERIC_SPELL) == spell ||
+                         bot->GetCurrentSpell(CURRENT_CHANNELED_SPELL) == spell ||
+                         bot->GetCurrentSpell(CURRENT_AUTOREPEAT_SPELL) == spell ||
+                         (!hadGlobalCooldown && bot->GetGlobalCooldownMgr().HasGlobalCooldown(spellInfo)) ||
+                         (!hadCooldown && bot->HasSpellCooldown(spellId));
+    SpellCastResult result = started ? SPELL_CAST_OK : spell->CheckCast(false);
     if (result != SPELL_CAST_OK)
     {
         // if (!sPlayerbotAIConfig->logInGroupOnly || (bot->GetGroup() && HasRealPlayerMaster())) {

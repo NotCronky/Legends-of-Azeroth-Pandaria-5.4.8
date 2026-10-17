@@ -108,12 +108,30 @@ bool CastSpellAction::isPossible()
     if (!botAI->CanCastSpell(spell, target))
         return false;
 
+    uint32 const spellId = AI_VALUE2(uint32, "spell id", spell);
+    SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(spellId);
+    if (!spellInfo)
+        return true;
+
     // CanCastSpell lets out of range casts through; don't cast them, so reaching the target comes first
-    if (target && target != bot)
-        if (SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(AI_VALUE2(uint32, "spell id", spell)))
-            if (spellInfo->RangeEntry && spellInfo->RangeEntry->ID != 1 /*self only*/ &&
-                !bot->IsWithinCombatRange(target, bot->GetSpellMaxRangeForTarget(target, spellInfo)))
+    if (target && target != bot && spellInfo->RangeEntry && spellInfo->RangeEntry->ID != 1 /*self only*/ &&
+        !bot->IsWithinCombatRange(target, bot->GetSpellMaxRangeForTarget(target, spellInfo)))
+        return false;
+
+    // CanCastSpell ignores the cost (checking it can use up proc charges); outside a cast, working it out
+    // doesn't, so a spell the bot can't afford gives way to the next one
+    Pet* pet = bot->GetPet();
+    if (!pet || !pet->HasSpell(spellId))
+    {
+        int32 powerIndex = -1;
+        Powers power = spellInfo->GetPowerType(bot, &powerIndex);
+        if (powerIndex >= 0 && power != POWER_HEALTH)
+        {
+            int32 cost = spellInfo->CalcPowerCost(bot, spellInfo->GetSchoolMask(), powerIndex);
+            if (cost > 0 && int32(bot->GetPower(power)) < cost)
                 return false;
+        }
+    }
 
     return true;
 }
