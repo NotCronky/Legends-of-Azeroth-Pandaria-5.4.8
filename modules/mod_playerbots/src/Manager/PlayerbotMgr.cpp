@@ -806,6 +806,7 @@ std::vector<std::string> PlayerbotHolder::HandlePlayerbotCommand(char const* arg
             bot->ActivateSpec(0);
             BotFactory factory(bot, bot->GetLevel());
             factory.InitTalentsTree(false);
+            factory.InitGlyphs();
             factory.InitEquipment(true);
             GET_PLAYERBOT_AI(bot)->ResetStrategies();
             GET_PLAYERBOT_AI(bot)->Reset(true);

@@ -406,152 +406,88 @@ AiPlayerbot.MaxRandomBotTeleportInterval = 18000
 #                                 #
 ###################################
 
-# AiPlayerbot.PremadeSpecName.<class>.<specIndex> = <name>
-# AiPlayerbot.PremadeSpecLink.<class>.<specIndex> = <talent id>,<talent id>,...
-#     Talent IDs from Talent.dbc, one per tier in tier order. When no link is set for a spec,
-#     bots pick a random talent in each unlocked tier.
+# Talents and major glyphs random bots take, per class and specialization. Without a setting bots use
+# the built-in templates (shown below, commented out); minor glyphs are random.
+#
+# AiPlayerbot.PremadeSpecLink.<class>.<specIndex> = <one digit per tier>
+#     The column of the talent to take in each tier, 0 to 2 from left to right as in the talent
+#     window, "." for a random one. "011211" takes the first talent in tier 1 (level 15), the second
+#     in tier 2, and so on.
+# AiPlayerbot.PremadeSpecGlyph.<class>.<specIndex> = <glyph name>,<glyph name>,...
+#     Major glyphs, without "Glyph of": "Victory Rush,Unending Rage".
+#
+# Classes: 1 warrior, 2 paladin, 3 hunter, 4 rogue, 5 priest, 6 death knight, 7 shaman, 8 mage,
+# 9 warlock, 10 monk, 11 druid. Specialization indexes in talent window order, for example warrior
+# 0 arms, 1 fury, 2 protection; druid 0 balance, 1 feral, 2 guardian, 3 restoration.
+#
+# The templates favor passive talents and glyphs, and talents that replace a spell, since bots only
+# cast what their class strategies know.
+#
+# AiPlayerbot.PremadeSpecLink.1.0 = 011211
+# AiPlayerbot.PremadeSpecLink.1.1 = 011211
+# AiPlayerbot.PremadeSpecLink.1.2 = 011110
+# AiPlayerbot.PremadeSpecLink.2.0 = 201120
+# AiPlayerbot.PremadeSpecLink.2.1 = 201122
+# AiPlayerbot.PremadeSpecLink.2.2 = 200122
+# AiPlayerbot.PremadeSpecLink.3.0 = 022210
+# AiPlayerbot.PremadeSpecLink.4.0 = 110002
+# AiPlayerbot.PremadeSpecLink.5.0 = 001222
+# AiPlayerbot.PremadeSpecLink.5.1 = 000222
+# AiPlayerbot.PremadeSpecLink.5.2 = 001202
+# AiPlayerbot.PremadeSpecLink.6.0 = 021011
+# AiPlayerbot.PremadeSpecLink.7.0 = 001221
+# AiPlayerbot.PremadeSpecLink.7.1 = 001220
+# AiPlayerbot.PremadeSpecLink.7.2 = 001201
+# AiPlayerbot.PremadeSpecLink.8.0 = 112100
+# AiPlayerbot.PremadeSpecLink.8.1 = 112110
+# AiPlayerbot.PremadeSpecLink.8.2 = 112120
+# AiPlayerbot.PremadeSpecLink.9.0 = 110111
+# AiPlayerbot.PremadeSpecLink.10.0 = 001201
+# AiPlayerbot.PremadeSpecLink.11.0 = 002021
+#
+# Built-in talent templates not listed are the same as the class's first one: hunter, rogue, death
+# knight, warlock, monk and druid specializations share one.
+#
+# Major glyphs: the PvE recommendations of Method's Mists of Pandaria Classic class guides (raiding,
+# single target), the first three where a guide lists more. Where a guide lists only two, the third is
+# its first listed alternative: Cloak of Shadows for combat and subtlety rogues, Healing Stream Totem for
+# elemental, Feral Spirit for enhancement, Chaining for restoration shamans, Eternal Resolve for
+# destruction warlocks. These are also the built-in defaults.
 
-###################################################################################################
-# WARRIOR
-#
-#
-
-AiPlayerbot.PremadeSpecName.1.0 = arms pve
-AiPlayerbot.PremadeSpecName.1.1 = fury pve
-AiPlayerbot.PremadeSpecName.1.2 = prot pve
-
-#
-#
-#
-###################################################################################################
-
-###################################################################################################
-# PALADIN
-#
-#
-
-AiPlayerbot.PremadeSpecName.2.0 = holy pve
-AiPlayerbot.PremadeSpecName.2.1 = prot pve
-AiPlayerbot.PremadeSpecName.2.2 = ret pve
-
-#
-#
-#
-###################################################################################################
-
-###################################################################################################
-# HUNTER
-#
-#
-
-AiPlayerbot.PremadeSpecName.3.0 = bm pve
-AiPlayerbot.PremadeSpecName.3.1 = mm pve
-AiPlayerbot.PremadeSpecName.3.2 = surv pve
-
-#
-#
-#
-###################################################################################################
-
-###################################################################################################
-# ROGUE
-#
-#
-
-AiPlayerbot.PremadeSpecName.4.0 = as pve
-AiPlayerbot.PremadeSpecName.4.1 = combat pve
-AiPlayerbot.PremadeSpecName.4.2 = subtlety pve
-
-#
-#
-#
-###################################################################################################
-
-###################################################################################################
-# PRIEST
-#
-#
-
-AiPlayerbot.PremadeSpecName.5.0 = disc pve
-AiPlayerbot.PremadeSpecName.5.1 = holy pve
-AiPlayerbot.PremadeSpecName.5.2 = shadow pve
-
-#
-#
-#
-###################################################################################################
-
-###################################################################################################
-# DEATHKNIGHT
-#
-#
-
-AiPlayerbot.PremadeSpecName.6.0 = blood pve
-AiPlayerbot.PremadeSpecName.6.1 = frost pve
-AiPlayerbot.PremadeSpecName.6.2 = unholy pve
-AiPlayerbot.PremadeSpecName.6.3 = double aura blood pve
-
-#
-#
-#
-###################################################################################################
-
-###################################################################################################
-# SHAMAN
-#
-#
-
-AiPlayerbot.PremadeSpecName.7.0 = ele pve
-AiPlayerbot.PremadeSpecName.7.1 = enh pve
-AiPlayerbot.PremadeSpecName.7.2 = resto pve
-
-#
-#
-#
-###################################################################################################
-
-###################################################################################################
-# MAGE
-#
-#
-
-AiPlayerbot.PremadeSpecName.8.0 = arcane pve
-AiPlayerbot.PremadeSpecName.8.1 = fire pve
-AiPlayerbot.PremadeSpecName.8.2 = frost pve
-
-#
-#
-#
-###################################################################################################
-
-###################################################################################################
-# WARLOCK
-#
-#
-
-AiPlayerbot.PremadeSpecName.9.0 = affli pve
-AiPlayerbot.PremadeSpecName.9.1 = emo pve
-AiPlayerbot.PremadeSpecName.9.2 = destro pve
-
-#
-#
-#
-###################################################################################################
-
-###################################################################################################
-# DRUID
-#
-#
-
-AiPlayerbot.PremadeSpecName.11.0 = balance pve
-AiPlayerbot.PremadeSpecName.11.1 = bear pve
-AiPlayerbot.PremadeSpecName.11.2 = resto pve
-AiPlayerbot.PremadeSpecName.11.3 = cat pve
-
-#
-#
-#
-###################################################################################################
+AiPlayerbot.PremadeSpecGlyph.1.0 = Unending Rage,Colossus Smash,Bull Rush
+AiPlayerbot.PremadeSpecGlyph.1.1 = Unending Rage,Colossus Smash,Bull Rush
+AiPlayerbot.PremadeSpecGlyph.1.2 = Heavy Repercussions,Hold the Line,Unending Rage
+AiPlayerbot.PremadeSpecGlyph.2.0 = Hand of Sacrifice,Protector of the Innocent,Divinity
+AiPlayerbot.PremadeSpecGlyph.2.1 = Focused Shield,the Alabaster Shield,Final Wrath
+AiPlayerbot.PremadeSpecGlyph.2.2 = Hand of Sacrifice,Templar's Verdict,Inquisition
+AiPlayerbot.PremadeSpecGlyph.3.0 = Deterrence,Animal Bond,Disengage
+AiPlayerbot.PremadeSpecGlyph.3.1 = Aimed Shot,Deterrence,Animal Bond
+AiPlayerbot.PremadeSpecGlyph.3.2 = Deterrence,Animal Bond,Disengage
+AiPlayerbot.PremadeSpecGlyph.4.0 = Vendetta,Feint,Redirect
+AiPlayerbot.PremadeSpecGlyph.4.1 = Feint,Redirect,Cloak of Shadows
+AiPlayerbot.PremadeSpecGlyph.4.2 = Feint,Redirect,Cloak of Shadows
+AiPlayerbot.PremadeSpecGlyph.5.0 = Penance,Fade,Smite
+AiPlayerbot.PremadeSpecGlyph.5.1 = Fade,Renew,Circle of Healing
+AiPlayerbot.PremadeSpecGlyph.5.2 = Vampiric Embrace,Fade,Dispersion
+AiPlayerbot.PremadeSpecGlyph.6.0 = Outbreak,Anti-Magic Shell,Regenerative Magic
+AiPlayerbot.PremadeSpecGlyph.6.1 = Pestilence,Anti-Magic Shell,Loud Horn
+AiPlayerbot.PremadeSpecGlyph.6.2 = Loud Horn,Anti-Magic Shell,Regenerative Magic
+AiPlayerbot.PremadeSpecGlyph.7.0 = Lightning Shield,Flame Shock,Healing Stream Totem
+AiPlayerbot.PremadeSpecGlyph.7.1 = Lightning Shield,Fire Nova,Feral Spirit
+AiPlayerbot.PremadeSpecGlyph.7.2 = Telluric Currents,Healing Stream Totem,Chaining
+AiPlayerbot.PremadeSpecGlyph.8.0 = Arcane Power,Evocation,Rapid Displacement
+AiPlayerbot.PremadeSpecGlyph.8.1 = Rapid Displacement,Combustion,Inferno Blast
+AiPlayerbot.PremadeSpecGlyph.8.2 = Icy Veins,Splitting Ice,Water Elemental
+AiPlayerbot.PremadeSpecGlyph.9.0 = Unstable Affliction,Siphon Life,Healthstone
+AiPlayerbot.PremadeSpecGlyph.9.1 = Imp Swarm,Siphon Life,Demon Training
+AiPlayerbot.PremadeSpecGlyph.9.2 = Siphon Life,Healthstone,Eternal Resolve
+AiPlayerbot.PremadeSpecGlyph.10.0 = Fortifying Brew,Touch of Death,Spinning Crane Kick
+AiPlayerbot.PremadeSpecGlyph.10.1 = Spinning Crane Kick,Touch of Death,Touch of Karma
+AiPlayerbot.PremadeSpecGlyph.10.2 = Renewing Mists,Zen Meditation,Touch of Death
+AiPlayerbot.PremadeSpecGlyph.11.0 = Stampede,Stampeding Roar,Rebirth
+AiPlayerbot.PremadeSpecGlyph.11.1 = Stampeding Roar,Savagery,Cat Form
+AiPlayerbot.PremadeSpecGlyph.11.2 = Stampeding Roar,Rebirth,Maul
+AiPlayerbot.PremadeSpecGlyph.11.3 = Efflorescence,Wild Growth,Rejuvenation
 
 ###################################
 #                                 #

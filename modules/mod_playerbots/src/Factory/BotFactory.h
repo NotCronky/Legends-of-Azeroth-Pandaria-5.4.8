@@ -17,12 +17,23 @@ public:
 
     void InitEquipment(bool incremental, bool second_chance = false);
     void InitPet();
+    // The template's talent in each unlocked tier (AiPlayerbot.PremadeSpecLink, or the built-in one)
     void InitTalentsTree(bool reset);
+    // Major glyphs from the template and random minor ones in the unlocked, empty glyph slots
+    void InitGlyphs();
     // Riding skills and flying licenses for the bot's level, and a ground and a flying mount
     void InitMounts();
     // A stack of the best healing potions, and mana potions for mana users, if the bot has none
     void InitPotions();
 private:
+    // A class's major glyphs by name (without "Glyph of") and minor glyphs, as GlyphProperties ids
+    struct GlyphsForClass
+    {
+        std::map<std::string, uint32> majors;
+        std::vector<uint32> minors;
+    };
+    static GlyphsForClass const& GetGlyphsForClass(uint32 cls);
+
     void Prepare();
     void CancelAuras();
 

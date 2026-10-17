@@ -147,8 +147,10 @@ void BotFactory::Randomize(bool incremental)
     Prepare();
     if (!incremental)
     {
-        // -- Unlearn talents and spec
+        // -- Unlearn talents and spec, remove glyphs
         bot->ResetTalents(true, true, true);
+        for (uint8 slot = 0; slot < MAX_GLYPH_SLOT_INDEX; ++slot)
+            bot->SetGlyph(slot, 0);
 
         // -- release pet
         bot->RemovePet(PetRemoveMode::PET_REMOVE_ABANDON, PetRemoveFlag::PET_REMOVE_FLAG_NONE);
@@ -166,6 +168,7 @@ void BotFactory::Randomize(bool incremental)
 
     InitTalentsTree(false);
     InitEquipment(incremental);
+    InitGlyphs();
     InitPet();
     InitMounts();
     InitPotions();
@@ -311,6 +314,155 @@ void BotFactory::InitPet()
     }
 }
 #include <fstream>
+namespace
+{
+    enum GlyphType
+    {
+        GLYPH_TYPE_MAJOR = 0,
+        GLYPH_TYPE_MINOR = 1
+    };
+
+    // Talent column per tier, by class and specialization tab ("." or a missing tab: the class's first)
+    std::string DefaultTalentLink(uint32 cls, uint8 tab)
+    {
+        static std::map<uint32, std::vector<std::string>> const links = {
+            { CLASS_WARRIOR, { "011211", "011211", "011110" } },
+            { CLASS_PALADIN, { "201120", "201122", "200122" } },
+            { CLASS_HUNTER, { "022210" } },
+            { CLASS_ROGUE, { "110002" } },
+            { CLASS_PRIEST, { "001222", "000222", "001202" } },
+            { CLASS_DEATH_KNIGHT, { "021011" } },
+            { CLASS_SHAMAN, { "001221", "001220", "001201" } },
+            { CLASS_MAGE, { "112100", "112110", "112120" } },
+            { CLASS_WARLOCK, { "110111" } },
+            { CLASS_MONK, { "001201" } },
+            { CLASS_DRUID, { "002021" } },
+        };
+
+        auto itr = links.find(cls);
+        if (itr == links.end())
+            return "";
+
+        return tab < itr->second.size() ? itr->second[tab] : itr->second.front();
+    }
+
+    // Major glyphs, without "Glyph of", by class and specialization tab: the PvE picks of Method's MoP Classic
+    // guides, as in playerbots.conf.dist
+    std::vector<std::string> DefaultGlyphs(uint32 cls, uint8 tab)
+    {
+        static std::map<uint32, std::vector<std::vector<std::string>>> const glyphs = {
+            { CLASS_WARRIOR, {
+                { "Unending Rage", "Colossus Smash", "Bull Rush" },
+                { "Unending Rage", "Colossus Smash", "Bull Rush" },
+                { "Heavy Repercussions", "Hold the Line", "Unending Rage" },
+            } },
+            { CLASS_PALADIN, {
+                { "Hand of Sacrifice", "Protector of the Innocent", "Divinity" },
+                { "Focused Shield", "the Alabaster Shield", "Final Wrath" },
+                { "Hand of Sacrifice", "Templar's Verdict", "Inquisition" },
+            } },
+            { CLASS_HUNTER, {
+                { "Deterrence", "Animal Bond", "Disengage" },
+                { "Aimed Shot", "Deterrence", "Animal Bond" },
+                { "Deterrence", "Animal Bond", "Disengage" },
+            } },
+            { CLASS_ROGUE, {
+                { "Vendetta", "Feint", "Redirect" },
+                { "Feint", "Redirect", "Cloak of Shadows" },
+                { "Feint", "Redirect", "Cloak of Shadows" },
+            } },
+            { CLASS_PRIEST, {
+                { "Penance", "Fade", "Smite" },
+                { "Fade", "Renew", "Circle of Healing" },
+                { "Vampiric Embrace", "Fade", "Dispersion" },
+            } },
+            { CLASS_DEATH_KNIGHT, {
+                { "Outbreak", "Anti-Magic Shell", "Regenerative Magic" },
+                { "Pestilence", "Anti-Magic Shell", "Loud Horn" },
+                { "Loud Horn", "Anti-Magic Shell", "Regenerative Magic" },
+            } },
+            { CLASS_SHAMAN, {
+                { "Lightning Shield", "Flame Shock", "Healing Stream Totem" },
+                { "Lightning Shield", "Fire Nova", "Feral Spirit" },
+                { "Telluric Currents", "Healing Stream Totem", "Chaining" },
+            } },
+            { CLASS_MAGE, {
+                { "Arcane Power", "Evocation", "Rapid Displacement" },
+                { "Rapid Displacement", "Combustion", "Inferno Blast" },
+                { "Icy Veins", "Splitting Ice", "Water Elemental" },
+            } },
+            { CLASS_WARLOCK, {
+                { "Unstable Affliction", "Siphon Life", "Healthstone" },
+                { "Imp Swarm", "Siphon Life", "Demon Training" },
+                { "Siphon Life", "Healthstone", "Eternal Resolve" },
+            } },
+            { CLASS_MONK, {
+                { "Fortifying Brew", "Touch of Death", "Spinning Crane Kick" },
+                { "Spinning Crane Kick", "Touch of Death", "Touch of Karma" },
+                { "Renewing Mists", "Zen Meditation", "Touch of Death" },
+            } },
+            { CLASS_DRUID, {
+                { "Stampede", "Stampeding Roar", "Rebirth" },
+                { "Stampeding Roar", "Savagery", "Cat Form" },
+                { "Stampeding Roar", "Rebirth", "Maul" },
+                { "Efflorescence", "Wild Growth", "Rejuvenation" },
+            } },
+        };
+
+        auto itr = glyphs.find(cls);
+        if (itr == glyphs.end() || tab >= itr->second.size())
+            return {};
+
+        return itr->second[tab];
+    }
+}
+
+// A class's glyphs: GlyphProperties.dbc has no class, but the class's glyph items teach them (an apply glyph
+// effect on the item's spell, with the glyph id). Majors are keyed by the item's name without "Glyph of"
+BotFactory::GlyphsForClass const& BotFactory::GetGlyphsForClass(uint32 cls)
+{
+    // Built once, read from every map thread
+    static std::map<uint32, GlyphsForClass> const glyphs = []()
+    {
+        std::map<uint32, GlyphsForClass> result;
+        for (auto const& [itemId, proto] : *sObjectMgr->GetItemTemplateStore())
+        {
+            if (proto.Class != ITEM_CLASS_GLYPH || proto.Name1.size() <= 9)
+                continue;
+
+            for (_Spell const& itemSpell : proto.Spells)
+            {
+                SpellInfo const* spellInfo = itemSpell.SpellId > 0 ? sSpellMgr->GetSpellInfo(itemSpell.SpellId) : nullptr;
+                if (!spellInfo)
+                    continue;
+
+                for (uint32 i = 0; i < MAX_SPELL_EFFECTS; ++i)
+                {
+                    if (spellInfo->Effects[i].Effect != SPELL_EFFECT_APPLY_GLYPH)
+                        continue;
+
+                    GlyphPropertiesEntry const* glyph = sGlyphPropertiesStore.LookupEntry(spellInfo->Effects[i].MiscValue);
+                    if (!glyph)
+                        continue;
+
+                    GlyphsForClass& classGlyphs = result[proto.SubClass];
+                    if (glyph->TypeFlags == GLYPH_TYPE_MAJOR)
+                        classGlyphs.majors.emplace(proto.Name1.substr(9), glyph->Id);  // after "Glyph of "
+                    else if (glyph->TypeFlags == GLYPH_TYPE_MINOR &&
+                             std::find(classGlyphs.minors.begin(), classGlyphs.minors.end(), glyph->Id) == classGlyphs.minors.end())
+                        classGlyphs.minors.push_back(glyph->Id);
+                }
+            }
+        }
+
+        return result;
+    }();
+
+    static GlyphsForClass const none;
+    auto itr = glyphs.find(cls);
+    return itr != glyphs.end() ? itr->second : none;
+}
+
 void BotFactory::InitTalentsTree(bool reset)
 {
     /*std::map<uint32, std::list<const TalentEntry*>> talents_dbc;
@@ -378,61 +530,114 @@ void BotFactory::InitTalentsTree(bool reset)
         }
     }
 
-    WorldPacket p(CMSG_LEARN_TALENT);
-    uint32 alreadyUsedPoints = bot->GetUsedTalentCount();
-    uint8 spec_tab = PlayerBotSpec::GetSpectab(bot);
-    uint32 availablepoints = bot->CalculateTalentsPoints() - bot->GetUsedTalentCount();
-    uint32 learnCount = 0;
+    uint8 const specTab = PlayerBotSpec::GetSpectab(bot);
+    if (specTab >= MAX_SPECIALIZATIONS)
+        return;
 
-    if (!availablepoints || spec_tab == 99) return;
+    std::string link = sPlayerbotAIConfig->premadeSpecLink[bot->GetClass()][specTab];
+    if (link.empty())
+        link = DefaultTalentLink(bot->GetClass(), specTab);
 
-    const std::vector<uint16>& talents = sPlayerbotAIConfig->premadeSpecLink[bot->GetClass()][spec_tab];
+    // One talent per tier, a tier every 15 levels; learned talents are stored by spell, as in Player::LearnTalent
+    uint32 const unlockedTiers = bot->CalculateTalentsPoints();
+    std::map<uint32, std::vector<TalentEntry const*>> talentsByTier;
+    for (TalentEntry const* talent : sTalentStore)
+        if (talent->PlayerClass == bot->GetClass() && talent->TierID < unlockedTiers)
+            talentsByTier[talent->TierID].push_back(talent);
 
-    std::vector<uint16> talent_to_learn;
-    if (!talents.empty())
+    std::vector<uint16> toLearn;
+    for (auto const& [tier, tierTalents] : talentsByTier)
     {
-        for (size_t i = alreadyUsedPoints; i < talents.size() && availablepoints > 0; ++i)
-        {
-            uint16 talentId = talents[i];
-            TalentEntry const* talent = sTalentStore.LookupEntry(talentId);
-            if (talent && !bot->HasSpell(talent->SpellID))
-            {
-                learnCount++;
-                talent_to_learn.push_back(talentId);
-                availablepoints--;
-            }
-        }
-    }
-    else
-    {
-        // No premade talents configured: pick a random talent in each unlocked tier (one point per 15 levels)
-        uint32 const unlockedTiers = bot->CalculateTalentsPoints();
-        std::map<uint32, std::vector<TalentEntry const*>> classTalentsByTier;
-        for (TalentEntry const* talent : sTalentStore)
-            if (talent->PlayerClass == bot->GetClass() && talent->TierID < unlockedTiers)
-                classTalentsByTier[talent->TierID].push_back(talent);
+        if (tierTalents.empty() || std::any_of(tierTalents.begin(), tierTalents.end(),
+                                               [&](TalentEntry const* talent) { return bot->HasSpell(talent->SpellID); }))
+            continue;
 
-        for (auto const& [tier, tierTalents] : classTalentsByTier)
-        {
-            // learned talents are stored by spell, as in Player::LearnTalent
-            bool tierTaken = false;
+        // The template's column, or a random talent
+        TalentEntry const* choice = nullptr;
+        if (tier < link.size() && link[tier] >= '0' && link[tier] <= '2')
             for (TalentEntry const* talent : tierTalents)
-                if (bot->HasSpell(talent->SpellID))
-                    tierTaken = true;
+                if (talent->ColumnIndex == uint32(link[tier] - '0'))
+                    choice = talent;
 
-            if (tierTaken || tierTalents.empty())
-                continue;
+        if (!choice)
+            choice = tierTalents[urand(0, tierTalents.size() - 1)];
 
-            learnCount++;
-            talent_to_learn.push_back(tierTalents[urand(0, tierTalents.size() - 1)]->ID);
-        }
+        toLearn.push_back(choice->ID);
     }
-    if (learnCount > 0)
+
+    if (toLearn.empty())
+        return;
+
+    WorldPacket p(CMSG_LEARN_TALENT);
+    p.WriteBits(toLearn.size(), 23);
+    for (uint16 talentId : toLearn)
+        p << talentId;
+    bot->GetSession()->HandleLearnTalentOpcode(p);
+}
+
+void BotFactory::InitGlyphs()
+{
+    uint32 const enabledSlots = bot->GetUInt32Value(PLAYER_FIELD_GLYPH_SLOTS_ENABLED);
+    if (!enabledSlots)
+        return;
+
+    GlyphsForClass const& glyphs = GetGlyphsForClass(bot->GetClass());
+
+    uint8 const specTab = PlayerBotSpec::GetSpectab(bot);
+    std::vector<std::string> names;
+    if (specTab < MAX_SPECIALIZATIONS)
+        names = sPlayerbotAIConfig->premadeSpecGlyphs[bot->GetClass()][specTab];
+    if (names.empty())
+        names = DefaultGlyphs(bot->GetClass(), specTab);
+
+    std::vector<uint32> majors;
+    for (std::string const& name : names)
     {
-        p.WriteBits(learnCount, 23);
-        for (const auto& c : talent_to_learn)
-            p << c;
-        bot->GetSession()->HandleLearnTalentOpcode(p);
+        auto itr = glyphs.majors.find(name);
+        if (itr != glyphs.majors.end())
+            majors.push_back(itr->second);
+    }
+
+    std::set<uint32> used;
+    for (uint8 slot = 0; slot < MAX_GLYPH_SLOT_INDEX; ++slot)
+        if (uint32 glyph = bot->GetGlyph(bot->GetActiveSpec(), slot))
+            used.insert(glyph);
+
+    for (uint8 slot = 0; slot < MAX_GLYPH_SLOT_INDEX; ++slot)
+    {
+        if (!(enabledSlots & (1 << slot)) || bot->GetGlyph(bot->GetActiveSpec(), slot))
+            continue;
+
+        GlyphSlotEntry const* glyphSlot = sGlyphSlotStore.LookupEntry(bot->GetGlyphSlot(slot));
+        if (!glyphSlot)
+            continue;
+
+        // Majors from the template in order; minors (cosmetic in MoP) at random
+        uint32 glyph = 0;
+        if (glyphSlot->TypeFlags == GLYPH_TYPE_MAJOR)
+        {
+            for (uint32 candidate : majors)
+                if (!used.count(candidate))
+                {
+                    glyph = candidate;
+                    break;
+                }
+        }
+        else if (glyphSlot->TypeFlags == GLYPH_TYPE_MINOR)
+        {
+            std::vector<uint32> free;
+            for (uint32 candidate : glyphs.minors)
+                if (!used.count(candidate))
+                    free.push_back(candidate);
+            if (!free.empty())
+                glyph = free[urand(0, free.size() - 1)];
+        }
+
+        if (!glyph)
+            continue;
+
+        bot->SetGlyph(slot, glyph);
+        used.insert(glyph);
     }
 }
 

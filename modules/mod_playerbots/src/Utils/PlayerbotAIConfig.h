@@ -84,8 +84,10 @@ public:
     bool randomBotRandomPassword;
     std::vector<uint32> randomBotAccounts;
 
-    std::string premadeSpecName[MAX_CLASSES][MAX_SPECIALIZATIONS - 1];
-    std::vector<uint16> premadeSpecLink[MAX_CLASSES][MAX_SPECIALIZATIONS - 1];
+    // Talent column per tier ("011211"), and major glyph names, per class and specialization tab; empty for the
+    // built-in templates
+    std::string premadeSpecLink[MAX_CLASSES][MAX_SPECIALIZATIONS];
+    std::vector<std::string> premadeSpecGlyphs[MAX_CLASSES][MAX_SPECIALIZATIONS];
 
     uint32 iterationsPerTick;
 
