@@ -5,67 +5,31 @@
 
 #include "WarlockActions.h"
 
-#include "Event.h"
 #include "Playerbots.h"
 
-bool CastDrainSoulAction::isUseful() { /*return AI_VALUE2(uint32, "item count", "soul shard") < 10;*/ return std::rand() % 5 < 2; }
+bool CastLifeTapAction::isUseful() { return AI_VALUE2(uint8, "health", "self target") > sPlayerbotAIConfig->mediumHealth; }
 
-Value<Unit*>* CastBanishAction::GetTargetValue() { return context->GetValue<Unit*>("cc target", "banish"); }
+bool CastSummonDemonAction::isUseful() { return !bot->GetPet() && !bot->GetGuardianPet() && !bot->IsMounted(); }
 
-bool CastBanishAction::Execute(Event event) { return botAI->CastSpell("banish", GetTarget()); }
-
-Value<Unit*>* CastFearOnCcAction::GetTargetValue() { return context->GetValue<Unit*>("cc target", "fear"); }
-
-bool CastFearOnCcAction::Execute(Event event) { return botAI->CastSpell("fear", GetTarget()); }
-
-bool CastFearOnCcAction::isPossible() { return true; }
-
-bool CastFearOnCcAction::isUseful() { return true; }
-
-bool CastLifeTapAction::isUseful() { return AI_VALUE2(uint8, "health", "self target") > sPlayerbotAIConfig->lowHealth; }
-
-bool CastHandOfGuldanAction::Execute(Event event)
+bool CastSummonDemonAction::Execute(Event /*event*/)
 {
-	return botAI->CastSpell(105174, GetTarget());
-}
+    std::vector<std::string> demons = { "summon voidwalker", "summon imp" };
+    switch (bot->GetSpecialization())
+    {
+        case Specializations::SPEC_WARLOCK_AFFLICTION:
+            demons.insert(demons.begin(), "summon felhunter");
+            break;
+        case Specializations::SPEC_WARLOCK_DEMONOLOGY:
+            demons.insert(demons.begin(), { "summon felguard", "summon felhunter" });
+            break;
+        default:
+            demons = { "summon imp" };
+            break;
+    }
 
-bool CastChaosBoltAction::isUseful()
-{
-	return botAI->HasAura("fire and brimstone", bot) || bot->GetPower(Powers::POWER_BURNING_EMBERS) >= 10;
-}
-bool CastIncinerateAction::Execute(Event event)
-{
-	if (!isUseful() || !isPossible())
-		return false;
+    for (std::string const& demon : demons)
+        if (botAI->CanCastSpell(demon, bot))
+            return botAI->CastSpell(demon, bot);
 
-	if (botAI->HasAura("fire and brimstone", bot))
-		botAI->CastSpell(114654, GetTarget());
-	else
-		botAI->CastSpell(spell, GetTarget());
-
-	return true;
-}
-bool CastImmolateAction::Execute(Event event)
-{
-	if (!isUseful() || !isPossible())
-		return false;
-
-	if (botAI->HasAura("fire and brimstone", bot))
-		botAI->CastSpell(108686, GetTarget());
-	else
-		botAI->CastSpell(spell, GetTarget());
-
-	return true;
-}
-bool CastConflagrateAction::Execute(Event event)
-{
-	if (!isUseful() || !isPossible())
-		return false;
-
-	if (botAI->HasAura("fire and brimstone", bot))
-		botAI->CastSpell(108685, GetTarget());
-	else
-		botAI->CastSpell(spell, GetTarget());
-
-	return true;
+    return false;
 }

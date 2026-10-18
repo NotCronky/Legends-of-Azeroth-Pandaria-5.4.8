@@ -50,6 +50,7 @@ public:
     {
         creators["battle shout"] = &WarriorTriggerFactoryInternal::battle_shout;
         creators["commanding shout"] = &WarriorTriggerFactoryInternal::commanding_shout;
+        creators["demoralizing shout"] = &WarriorTriggerFactoryInternal::demoralizing_shout;
         creators["battle stance"] = &WarriorTriggerFactoryInternal::battle_stance;
         creators["defensive stance"] = &WarriorTriggerFactoryInternal::defensive_stance;
         creators["berserker stance"] = &WarriorTriggerFactoryInternal::berserker_stance;
@@ -82,6 +83,7 @@ public:
 private:
     static Trigger* battle_shout(PlayerbotAI* botAI) { return new BattleShoutTrigger(botAI); }
     static Trigger* commanding_shout(PlayerbotAI* botAI) { return new CommandingShoutTrigger(botAI); }
+    static Trigger* demoralizing_shout(PlayerbotAI* botAI) { return new DemoralizingShoutTrigger(botAI); }
     static Trigger* defensive_stance(PlayerbotAI* botAI) { return new DefensiveStanceTrigger(botAI); }
     static Trigger* berserker_stance(PlayerbotAI* botAI) { return new BerserkerStanceTrigger(botAI); }
     static Trigger* battle_stance(PlayerbotAI* botAI) { return new BattleStanceTrigger(botAI); }
@@ -146,7 +148,7 @@ public:
         creators["whirlwind"] = &WarriorAiObjectContextInternal::whirlwind;
         creators["cleave"] = &WarriorAiObjectContextInternal::cleave;
         creators["bladestorm"] = &WarriorAiObjectContextInternal::bladestorm;
-        creators["dragonroar"] = &WarriorAiObjectContextInternal::dragonroar;
+        creators["dragon roar"] = &WarriorAiObjectContextInternal::dragonroar;
         creators["shockwave"] = &WarriorAiObjectContextInternal::shockwave;
 
         // -- arms

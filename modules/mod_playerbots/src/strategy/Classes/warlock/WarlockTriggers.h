@@ -7,85 +7,53 @@
 #define _PLAYERBOT_WARLOCKTRIGGERS_H
 
 #include "GenericTriggers.h"
-#include "PlayerbotAI.h"
 
 class PlayerbotAI;
 
-// -- TALENTS
+BUFF_TRIGGER(DarkIntentTrigger, "dark intent");
 
-BUFF_TRIGGER_TIMED(SoulLinkTrigger, "soul link", 5000);
-
-// -- GENERIC
-
-BUFF_TRIGGER_TIMED(DarkIntentTrigger, "dark intent", 5000);
-class CurseOfAgonyTrigger : public DebuffTrigger
+// No healthstone in the bags, and the warlock can make one and has room for it
+class NoHealthstoneTrigger : public Trigger
 {
 public:
-    CurseOfAgonyTrigger(PlayerbotAI* botAI) : DebuffTrigger(botAI, "agony", 1, true, 20.0f) {}
-};
+    NoHealthstoneTrigger(PlayerbotAI* botAI) : Trigger(botAI, "no healthstone", 5) {}
 
-class CurseOfElementsTrigger : public DebuffTrigger
-{
-public:
-    CurseOfElementsTrigger(PlayerbotAI* botAI) : DebuffTrigger(botAI, "curse of the elements", 1, false) {}
-    bool IsActive() override
-    {
-        return DebuffTrigger::IsActive() && !botAI->HasAura("curse of the elements", GetTarget()) &&
-            !botAI->HasAura("curse of enfeeblement", GetTarget(), false, true);
-    }
-};
-
-class CurseOfEnfeeblementTrigger : public DebuffTrigger
-{
-public:
-    CurseOfEnfeeblementTrigger(PlayerbotAI* botAI) : DebuffTrigger(botAI, "curse of enfeeblement", 1, false) {}
-    bool IsActive() override
-    {
-        return DebuffTrigger::IsActive() && !botAI->HasAura("curse of enfeeblement", GetTarget()) &&
-            !botAI->HasAura("curse of the elements", GetTarget(), false, true);
-    }
-};
-
-class CorruptionTrigger : public DebuffTrigger
-{
-public:
-    CorruptionTrigger(PlayerbotAI* botAI) : DebuffTrigger(botAI, "corruption", 1, true) {}
     bool IsActive() override;
 };
+
+// -- affliction
+DEBUFF_CHECKISOWNER_TRIGGER(AgonyTrigger, "agony");
+DEBUFF_CHECKISOWNER_TRIGGER(CorruptionTrigger, "corruption");
 DEBUFF_CHECKISOWNER_TRIGGER(UnstableAfflictionTrigger, "unstable affliction");
+DEBUFF_CHECKISOWNER_TRIGGER(HauntTrigger, "haunt");
+CAN_CAST_TRIGGER(DarkSoulMiseryTrigger, "dark soul: misery");
 
-// -- DEMONO
-class MetamorphosisTrigger : public BuffTrigger
+// The target is below 20%: Drain Soul
+class DrainSoulTrigger : public Trigger
 {
 public:
-    MetamorphosisTrigger(PlayerbotAI* ai) : BuffTrigger(ai, "metamorphosis", true) {}
+    DrainSoulTrigger(PlayerbotAI* botAI) : Trigger(botAI, "drain soul") {}
+
     bool IsActive() override;
 };
 
-class MoltenCoreTrigger : public HasAuraTrigger
-{
-public:
-    MoltenCoreTrigger(PlayerbotAI* ai) : HasAuraTrigger(ai, "molten core") {}
-};
+// -- demonology
+HAS_AURA_TRIGGER(MoltenCoreTrigger, "molten core");
+DEBUFF_CHECKISOWNER_TRIGGER(ShadowflameTrigger, "shadowflame");
+CAN_CAST_TRIGGER(DarkSoulKnowledgeTrigger, "dark soul: knowledge");
 
-// -- Destru
+// -- destruction
 DEBUFF_CHECKISOWNER_TRIGGER(ImmolateTrigger, "immolate");
-class BackdraftTrigger : public HasAuraStackTrigger
+CAN_CAST_TRIGGER(ConflagrateTrigger, "conflagrate");
+CAN_CAST_TRIGGER(DarkSoulInstabilityTrigger, "dark soul: instability");
+
+// Three Burning Embers: Chaos Bolt
+class BurningEmbersTrigger : public Trigger
 {
 public:
-    BackdraftTrigger(PlayerbotAI* ai) : HasAuraStackTrigger(ai, "backdraft", 1) {}
-};
-class FireAndBrimeStoneTrigger : public BuffTrigger
-{
-public:
-    FireAndBrimeStoneTrigger(PlayerbotAI* ai) : BuffTrigger(ai, "fire and brimstone", true) {}
+    BurningEmbersTrigger(PlayerbotAI* botAI) : Trigger(botAI, "burning embers") {}
+
     bool IsActive() override;
 };
-
-// -- Pet
-BEGIN_TRIGGER(WarlockPetLowHealthTrigger, Trigger)
-END_TRIGGER()
-BEGIN_TRIGGER(WarlockPetMediumHealthTrigger, Trigger)
-END_TRIGGER()
 
 #endif

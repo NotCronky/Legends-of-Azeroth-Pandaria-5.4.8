@@ -20,6 +20,9 @@ class CommandingShoutTrigger : public BuffTrigger
 public:
 	CommandingShoutTrigger(PlayerbotAI* botAI) : BuffTrigger(botAI, "commanding shout", 10) {}
 };
+
+// Demoralizing Shout is missing from the target (a tank cooldown)
+DEBUFF_TRIGGER(DemoralizingShoutTrigger, "demoralizing shout");
 BUFF_TRIGGER(BattleStanceTrigger, "battle stance");
 BUFF_TRIGGER(DefensiveStanceTrigger, "defensive stance");
 BUFF_TRIGGER(BerserkerStanceTrigger, "berserker stance");

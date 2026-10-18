@@ -5,46 +5,26 @@
 
 #include "WarlockTriggers.h"
 
-#include "GenericTriggers.h"
 #include "Playerbots.h"
 
-bool MetamorphosisTrigger::IsActive()
+bool NoHealthstoneTrigger::IsActive()
 {
-    if (botAI->HasAura("metamorphosis", bot) && bot->GetPower(Powers::POWER_DEMONIC_FURY) <= 50)
-    {
-        botAI->RemoveAura("metamorphosis");
-    }
-    return BuffTrigger::IsActive() && bot->GetPower(Powers::POWER_DEMONIC_FURY) >= 800;
+    if (!bot->HasSpell(6201) /*Create Healthstone*/ || bot->HasItemCount(5512 /*Healthstone*/, 1))
+        return false;
+
+    // With full bags the spell makes nothing and the trigger would fire again at once
+    ItemPosCountVec dest;
+    return bot->CanStoreNewItem(NULL_BAG, NULL_SLOT, dest, 5512, 1) == EQUIP_ERR_OK;
 }
 
-bool CorruptionTrigger::IsActive()
+bool DrainSoulTrigger::IsActive()
 {
-    if (botAI->HasAura("metamorphosis", bot))
-    {
-        spell = "doom";
-        return DebuffTrigger::IsActive();
-    }
-
-    spell = "corruption";
-    return DebuffTrigger::IsActive() && !botAI->HasAura("doom", GetTarget(), false, true);
+    Unit* target = AI_VALUE(Unit*, "current target");
+    return target && target->GetHealthPct() < 20.0f;
 }
 
-bool FireAndBrimeStoneTrigger::IsActive()
+bool BurningEmbersTrigger::IsActive()
 {
-    if (botAI->HasAura("fire and brimstone", bot) && bot->GetPower(Powers::POWER_BURNING_EMBERS) <= 0)
-    {
-        botAI->RemoveAura("fire and brimstone");
-    }
-    return BuffTrigger::IsActive() && bot->GetPower(Powers::POWER_BURNING_EMBERS) >= 40;
-}
-
-bool WarlockPetLowHealthTrigger::IsActive()
-{
-    Unit* pet = AI_VALUE(Unit*, "pet target");
-    return pet && AI_VALUE2(uint8, "health", "pet target") < 40 && !AI_VALUE2(bool, "dead", "pet target") /*&& !AI_VALUE2(bool, "mounted", "self target")*/;
-}
-bool WarlockPetMediumHealthTrigger::IsActive()
-{
-    Unit* pet = AI_VALUE(Unit*, "pet target");
-    return pet && AI_VALUE2(uint8, "health", "pet target") < sPlayerbotAIConfig->mediumHealth /* && !AI_VALUE2(bool, "dead", "pet target") && !AI_VALUE2(bool, "mounted", "self target")*/;
+    // Embers are kept in tenths
+    return bot->GetPower(POWER_BURNING_EMBERS) >= 30;
 }

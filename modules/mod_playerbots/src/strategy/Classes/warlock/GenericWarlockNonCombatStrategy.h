@@ -10,51 +10,13 @@
 
 class PlayerbotAI;
 
+// The demon, Dark Intent and a healthstone out of combat
 class GenericWarlockNonCombatStrategy : public NonCombatStrategy
 {
 public:
-    GenericWarlockNonCombatStrategy(PlayerbotAI* botAI);
+    GenericWarlockNonCombatStrategy(PlayerbotAI* botAI) : NonCombatStrategy(botAI) {}
 
     std::string const getName() override { return "nc"; }
-    void InitTriggers(std::vector<TriggerNode*>& triggers) override;
-};
-
-class WarlockPetStrategy : public Strategy
-{
-public:
-    WarlockPetStrategy(PlayerbotAI* botAI) : Strategy(botAI) {}
-
-    std::string const getName() override { return "pet"; }
-    void InitTriggers(std::vector<TriggerNode*>& triggers) override;
-};
-
-class SummonImpStrategy : public NonCombatStrategy
-{
-public:
-    SummonImpStrategy(PlayerbotAI* ai);
-    virtual std::string const getName() override { return "bhealth"; }
-
-public:
-    void InitTriggers(std::vector<TriggerNode*>& triggers) override;
-};
-
-class SummonFelguardStrategy : public NonCombatStrategy
-{
-public:
-    SummonFelguardStrategy(PlayerbotAI* ai);
-    virtual std::string const getName() override { return "bdps"; }
-
-public:
-    void InitTriggers(std::vector<TriggerNode*>& triggers) override;
-};
-
-class SummonFelhunterStrategy : public NonCombatStrategy
-{
-public:
-    SummonFelhunterStrategy(PlayerbotAI* ai);
-    virtual std::string const getName() override { return "bmana"; }
-
-public:
     void InitTriggers(std::vector<TriggerNode*>& triggers) override;
 };
 

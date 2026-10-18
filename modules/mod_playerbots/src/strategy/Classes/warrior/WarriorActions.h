@@ -72,7 +72,7 @@ MELEE_ACTION(CastThunderClapAction, "thunder clap");
 MELEE_ACTION(CastWhirlWindAction, "whirlwind");
 MELEE_ACTION(CastCleaveAction, "cleave");
 MELEE_ACTION(CastBladestormAction, "bladestorm");
-MELEE_ACTION(CastDragonroarAction, "dragonroar");
+MELEE_ACTION(CastDragonroarAction, "dragon roar");
 DEBUFF_ACTION_R(CastShockwaveAction, "shockwave", 8.0f);
 
 // -- arms

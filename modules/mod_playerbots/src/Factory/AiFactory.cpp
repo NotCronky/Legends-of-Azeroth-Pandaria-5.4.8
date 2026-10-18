@@ -233,7 +233,7 @@ void AiFactory::AddDefaultCombatStrategies(Player* player, PlayerbotAI* const fa
 {
     if (!player->InBattleground())
     {
-        // "racials", "cast time", "duel" and "avoid aoe" are added back as they get ported
+        // "racials", "cast time" and "duel" are added back as they get ported
         engine->addStrategiesNoInit("chat", "default", "boost", "potions", nullptr);
     }
     engine->addStrategy("formation", false);
@@ -262,13 +262,13 @@ void AiFactory::AddDefaultCombatStrategies(Player* player, PlayerbotAI* const fa
         case CLASS_MAGE:
         {
             if (spec == Specializations::SPEC_MAGE_ARCANE)
-                engine->addStrategiesNoInit("arcane", "arcane aoe", nullptr);
+                engine->addStrategy("arcane", false);
             else if (spec == Specializations::SPEC_MAGE_FIRE)
-                engine->addStrategiesNoInit("fire", "fire aoe", nullptr);
+                engine->addStrategy("fire", false);
             else
-                engine->addStrategiesNoInit("frost", "frost aoe", nullptr);
+                engine->addStrategy("frost", false);
 
-            engine->addStrategiesNoInit("dps", "dps assist", "cure", nullptr);
+            engine->addStrategiesNoInit("dps assist", "cure", nullptr);
             break;
         }
         case CLASS_WARRIOR:
@@ -348,7 +348,7 @@ void AiFactory::AddDefaultCombatStrategies(Player* player, PlayerbotAI* const fa
             else
                 engine->addStrategy("affli", false);
             
-            engine->addStrategiesNoInit("dps assist", "dps", "aoe", nullptr);
+            engine->addStrategy("dps assist", false);
             break;
         }
         case CLASS_DEATH_KNIGHT:
@@ -377,12 +377,13 @@ void AiFactory::AddDefaultCombatStrategies(Player* player, PlayerbotAI* const fa
         engine->addStrategy("tank face", false);
     if (PlayerBotSpec::IsMelee(player, true) && PlayerBotSpec::IsDps(player, true))
         engine->addStrategy("behind", false);
-    if (PlayerBotSpec::IsHeal(player, true))
-    {
-        //if (sPlayerbotAIConfig->autoSaveMana)
-            //engine->addStrategy("save mana", false);
-        //engine->addStrategy("healer dps", false);
-    }
+    if (PlayerBotSpec::IsHeal(player, true) && sPlayerbotAIConfig->autoSaveMana)
+        engine->addStrategy("save mana", false);
+
+    // Step out of ground effects with a player, and in dungeons and raids
+    if (sPlayerbotAIConfig->autoAvoidAoe &&
+        (facade->HasRealPlayerMaster() || (player->GetMap() && player->GetMap()->Instanceable())))
+        engine->addStrategy("avoid aoe", false);
 
     if (facade->IsRealPlayer() || sRandomPlayerbotMgr->IsRandomBot(player))
     {
@@ -475,11 +476,6 @@ void AiFactory::AddDefaultNonCombatStrategies(Player* player, PlayerbotAI* const
             nonCombatEngine->addStrategiesNoInit("dps assist", "cure", nullptr);
             break;
         case CLASS_MAGE:
-            if (tab == Specializations::SPEC_MAGE_ARCANE || tab == Specializations::SPEC_MAGE_FIRE)
-                nonCombatEngine->addStrategy("bdps", false);
-            else
-                nonCombatEngine->addStrategy("bmana", false);
-
             nonCombatEngine->addStrategiesNoInit("dps assist", "cure", nullptr);
             break;
         case CLASS_DRUID:
@@ -503,19 +499,7 @@ void AiFactory::AddDefaultNonCombatStrategies(Player* player, PlayerbotAI* const
                 nonCombatEngine->addStrategiesNoInit("dps assist", "cure", nullptr);
             break;
         case CLASS_WARLOCK:
-            if (tab == Specializations::SPEC_WARLOCK_AFFLICTION)
-            {
-                nonCombatEngine->addStrategiesNoInit("bmana", nullptr);
-            }
-            else if (tab == Specializations::SPEC_WARLOCK_DEMONOLOGY)
-            {
-                nonCombatEngine->addStrategiesNoInit("bdps", nullptr);
-            }
-            else if (tab == Specializations::SPEC_WARLOCK_DESTRUCTION)
-            {
-                nonCombatEngine->addStrategiesNoInit("bhealth", nullptr);
-            }
-            nonCombatEngine->addStrategiesNoInit("dps assist", nullptr);
+            nonCombatEngine->addStrategy("dps assist", false);
             break;
         case CLASS_DEATH_KNIGHT:
             if (tab == Specializations::SPEC_DEATH_KNIGHT_BLOOD)
