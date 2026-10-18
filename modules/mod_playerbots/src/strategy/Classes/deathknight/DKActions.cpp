@@ -5,45 +5,18 @@
 
 #include "DKActions.h"
 
-#include "Duration.h"
-#include "GenericSpellActions.h"
 #include "Playerbots.h"
-#include "SpellInfo.h"
-#include "SpellMgr.h"
 
-NextAction** CastDeathchillAction::getPrerequisites()
+bool CastIcyTouchAction::isUseful()
 {
-    return NextAction::merge(NextAction::array(0, new NextAction("frost presence"), nullptr),
-                             CastSpellAction::getPrerequisites());
+    Unit* target = GetTarget();
+    return target && !botAI->HasAura("frost fever", target, false, true) && CastSpellAction::isUseful();
 }
 
-NextAction** CastUnholyMeleeSpellAction::getPrerequisites()
+bool CastPlagueStrikeAction::isUseful()
 {
-    return NextAction::merge(NextAction::array(0, new NextAction("unholy presence"), nullptr),
-                             CastMeleeSpellAction::getPrerequisites());
+    Unit* target = GetTarget();
+    return target && !botAI->HasAura("blood plague", target, false, true) && CastMeleeSpellAction::isUseful();
 }
 
-NextAction** CastFrostMeleeSpellAction::getPrerequisites()
-{
-    return NextAction::merge(NextAction::array(0, new NextAction("frost presence"), nullptr),
-                             CastMeleeSpellAction::getPrerequisites());
-}
-
-NextAction** CastBloodMeleeSpellAction::getPrerequisites()
-{
-    return NextAction::merge(NextAction::array(0, new NextAction("blood presence"), nullptr),
-                             CastMeleeSpellAction::getPrerequisites());
-}
-
-bool CastRaiseDeadAction::Execute(Event event)
-{
-    bool result = CastBuffSpellAction::Execute(event);
-    if (!result)
-    {
-        return false;
-    }
-    uint32 spellId = AI_VALUE2(uint32, "spell id", spell);
-    // const SpellInfo *spellInfo = sSpellMgr->GetSpellInfo(spellId);
-    bot->AddSpellCooldown(spellId, 0, 3 * 60 * 1000);
-    return true;
-}
+bool CastRaiseDeadAction::isUseful() { return !bot->GetPet() && !bot->GetGuardianPet() && CastBuffSpellAction::isUseful(); }

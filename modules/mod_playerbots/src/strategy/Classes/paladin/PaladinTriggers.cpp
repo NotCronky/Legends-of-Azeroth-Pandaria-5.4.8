@@ -5,11 +5,22 @@
 
 #include "PaladinTriggers.h"
 
-#include "PaladinActions.h"
-#include "PlayerbotAIConfig.h"
 #include "Playerbots.h"
 
-bool SealTrigger::IsActive()
+bool BlessingOfKingsTrigger::IsActive()
 {
-	return !botAI->HasAura("seal of righteousness", bot) || !botAI->HasAura("seal of command", bot) || !botAI->HasAura("seal of insight", bot);
+    return bot->HasSpell(20217) /*Blessing of Kings*/ &&
+           !botAI->HasAnyAuraOf(bot, "blessing of kings", "mark of the wild", "legacy of the emperor",
+                                "embrace of the shale spider", nullptr);
+}
+
+bool BlessingOfMightTrigger::IsActive()
+{
+    // Kings is up but not ours: another paladin, druid or monk has the stats buff covered
+    return bot->HasSpell(19740) /*Blessing of Might*/ &&
+           botAI->HasAnyAuraOf(bot, "blessing of kings", "mark of the wild", "legacy of the emperor",
+                               "embrace of the shale spider", nullptr) &&
+           !botAI->HasAura("blessing of kings", bot, false, true) &&
+           !botAI->HasAnyAuraOf(bot, "blessing of might", "grace of air", "roar of courage", "spirit beast blessing",
+                                nullptr);
 }

@@ -10,10 +10,11 @@
 
 class PlayerbotAI;
 
+// A blessing, Righteous Fury (Protection) and resurrecting the group out of combat
 class GenericPaladinNonCombatStrategy : public NonCombatStrategy
 {
 public:
-    GenericPaladinNonCombatStrategy(PlayerbotAI* botAI);
+    GenericPaladinNonCombatStrategy(PlayerbotAI* botAI) : NonCombatStrategy(botAI) {}
 
     std::string const getName() override { return "nc"; }
     void InitTriggers(std::vector<TriggerNode*>& triggers) override;

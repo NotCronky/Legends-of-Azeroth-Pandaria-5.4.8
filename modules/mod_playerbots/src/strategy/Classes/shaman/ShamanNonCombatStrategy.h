@@ -10,13 +10,13 @@
 
 class PlayerbotAI;
 
+// A shield, the specialization's weapon imbue and resurrecting the group out of combat
 class ShamanNonCombatStrategy : public NonCombatStrategy
 {
 public:
     ShamanNonCombatStrategy(PlayerbotAI* botAI) : NonCombatStrategy(botAI) {}
 
     void InitTriggers(std::vector<TriggerNode*>& triggers) override;
-    void InitMultipliers(std::vector<Multiplier*>& multipliers) override;
     std::string const getName() override { return "nc"; }
 };
 

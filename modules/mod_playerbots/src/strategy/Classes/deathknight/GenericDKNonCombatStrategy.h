@@ -6,27 +6,18 @@
 #ifndef _PLAYERBOT_GENERICDKNONCOMBATSTRATEGY_H
 #define _PLAYERBOT_GENERICDKNONCOMBATSTRATEGY_H
 
-#include "GenericDKStrategy.h"
 #include "NonCombatStrategy.h"
 
 class PlayerbotAI;
 
+// Horn of Winter, Bone Shield and Unholy's ghoul out of combat
 class GenericDKNonCombatStrategy : public NonCombatStrategy
 {
 public:
-    GenericDKNonCombatStrategy(PlayerbotAI* botAI);
+    GenericDKNonCombatStrategy(PlayerbotAI* botAI) : NonCombatStrategy(botAI) {}
 
     std::string const getName() override { return "nc"; }
     void InitTriggers(std::vector<TriggerNode*>& triggers) override;
-};
-
-class DKBuffDpsStrategy : public Strategy
-{
-public:
-    DKBuffDpsStrategy(PlayerbotAI* botAI) : Strategy(botAI) {}
-
-    void InitTriggers(std::vector<TriggerNode*>& triggers) override;
-    std::string const getName() override { return "bdps"; }
 };
 
 #endif

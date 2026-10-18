@@ -10,21 +10,13 @@
 
 class PlayerbotAI;
 
+// Mark of the Wild and resurrecting the group out of combat
 class GenericDruidNonCombatStrategy : public NonCombatStrategy
 {
 public:
-    GenericDruidNonCombatStrategy(PlayerbotAI* botAI);
+    GenericDruidNonCombatStrategy(PlayerbotAI* botAI) : NonCombatStrategy(botAI) {}
 
     std::string const getName() override { return "nc"; }
-    void InitTriggers(std::vector<TriggerNode*>& triggers) override;
-};
-
-class GenericDruidBuffStrategy : public NonCombatStrategy
-{
-public:
-    GenericDruidBuffStrategy(PlayerbotAI* botAI);
-
-    std::string const getName() override { return "buff"; }
     void InitTriggers(std::vector<TriggerNode*>& triggers) override;
 };
 

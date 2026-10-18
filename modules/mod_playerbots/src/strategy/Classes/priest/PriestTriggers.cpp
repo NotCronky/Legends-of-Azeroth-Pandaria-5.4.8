@@ -6,3 +6,16 @@
 #include "PriestTriggers.h"
 
 #include "Playerbots.h"
+
+bool PowerWordFortitudeTrigger::IsActive()
+{
+    return bot->HasSpell(21562) /*Power Word: Fortitude*/ &&
+           !botAI->HasAnyAuraOf(bot, "power word: fortitude", "commanding shout", "blood pact", "qiraji fortitude",
+                                nullptr);
+}
+
+bool ShadowfiendTrigger::IsActive()
+{
+    Unit* target = AI_VALUE(Unit*, "current target");
+    return target && (botAI->CanCastSpell("mindbender", target) || botAI->CanCastSpell("shadowfiend", target));
+}
