@@ -41,6 +41,7 @@
 #include "CliRunnable.h"
 #include "DeadlineTimer.h"
 #include "GitRevision.h"
+#include "GroupMgr.h"
 #include "IoContext.h"
 #include "InstanceSaveMgr.h"
 #include "Log.h"
@@ -220,6 +221,9 @@ extern int main(int argc, char** argv)
         return 1;
 
     std::shared_ptr<void> dbHandle(nullptr, [](void*) { StopDB(); });
+
+    // Groups write to the database when unloaded: unload them after the maps, before the database stops
+    std::shared_ptr<void> groupsHandle(nullptr, [](void*) { sGroupMgr->UnloadAll(); });
 
     // set server offline (not connectable)
     LoginDatabase.DirectPExecute("UPDATE realmlist SET flag = flag | {} WHERE id = '{}'", REALM_FLAG_OFFLINE, realm.Id.Realm);

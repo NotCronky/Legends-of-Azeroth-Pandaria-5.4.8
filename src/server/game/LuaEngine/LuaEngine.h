@@ -610,7 +610,9 @@ class Eluna
             ItemGossipBindings->Clear();
             playerGossipBindings->Clear();
 
-            lua_close(L); // Closing
+            // Never started (Eluna disabled): there is no state to close
+            if (L)
+                lua_close(L); // Closing
         }
 
         struct ElunaBind

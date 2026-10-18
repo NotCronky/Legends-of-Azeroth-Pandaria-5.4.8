@@ -47,6 +47,7 @@ public:
     void   SetGroupDbStoreSize(uint32 newSize) { GroupDbStore.resize(newSize); }
 
     void   LoadGroups();
+    void   UnloadAll();
     ObjectGuid::LowType GenerateGroupId();
     void   AddGroup(Group* group);
     void   RemoveGroup(Group* group);

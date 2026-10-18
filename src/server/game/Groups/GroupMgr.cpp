@@ -30,8 +30,17 @@ GroupMgr::GroupMgr()
 
 GroupMgr::~GroupMgr()
 {
+    UnloadAll();
+}
+
+void GroupMgr::UnloadAll()
+{
+    // A group unloads its instance saves, which writes to the character database: at shutdown this
+    // must run before the database closes, not in the static destructor after main
     for (GroupContainer::iterator itr = GroupStore.begin(); itr != GroupStore.end(); ++itr)
         delete itr->second;
+    GroupStore.clear();
+    std::fill(GroupDbStore.begin(), GroupDbStore.end(), nullptr);
 }
 
 uint32 GroupMgr::GenerateNewGroupDbStoreId()
