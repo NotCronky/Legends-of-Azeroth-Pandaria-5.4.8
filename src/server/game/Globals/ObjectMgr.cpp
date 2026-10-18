@@ -10971,11 +10971,12 @@ CreatureDifficultyInfo const* ObjectMgr::SelectDifficultyInfo(Map const* map, ui
 
     if (alt != difficulty)
         difficultyInfo = GetCreatureDifficultyInfo(alt, entry);
-    if (!difficultyInfo && difficulty != REGULAR_DIFFICULTY)
-    {
-        //TC_LOG_ERROR("sql.sql", "No difficulty entry for creature {} and map difficulty {}", entry, difficulty);
-        return nullptr;
-    }
+
+    // The DUNGEON_NORMAL row holds the creature's own tuning (the damage multiplier that used to live in
+    // creature_template, its levels and health), so it stands in for the open world and any difficulty
+    // the creature has no row for
+    if (!difficultyInfo && difficulty != DUNGEON_DIFFICULTY_NORMAL)
+        difficultyInfo = GetCreatureDifficultyInfo(DUNGEON_DIFFICULTY_NORMAL, entry);
     return difficultyInfo;
 }
 
