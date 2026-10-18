@@ -32,6 +32,7 @@
 #include "PartyMemberToDispelValue.h"
 #include "PartyMemberToHealValue.h"
 #include "AoeHealValue.h"
+#include "AvoidAoeValues.h"
 #include "EnemyHealerTargetValue.h"
 #include "PartyMemberToResurectValue.h"
 #include "PetTargetValue.h"
@@ -172,6 +173,8 @@ public:
         creators["party member without aura"] = &ValueContext::party_member_without_aura;
         creators["party member to heal"] = &ValueContext::party_member_to_heal;
         creators["aoe heal"] = &ValueContext::aoe_heal;
+        creators["area debuff"] = &ValueContext::area_debuff;
+        creators["nearest trap with damage"] = &ValueContext::nearest_trap_with_damage;
         creators["enemy healer target"] = &ValueContext::enemy_healer_target;
         creators["party member to resurrect"] = &ValueContext::party_member_to_resurrect;
         creators["party member to dispel"] = &ValueContext::party_member_to_dispel;
@@ -304,6 +307,8 @@ private:
     static UntypedValue* party_member_without_aura(PlayerbotAI* botAI) { return new PartyMemberWithoutAuraValue(botAI); }
     static UntypedValue* party_member_to_heal(PlayerbotAI* botAI) { return new PartyMemberToHeal(botAI); }
     static UntypedValue* aoe_heal(PlayerbotAI* botAI) { return new AoeHealValue(botAI); }
+    static UntypedValue* area_debuff(PlayerbotAI* botAI) { return new AreaDebuffValue(botAI); }
+    static UntypedValue* nearest_trap_with_damage(PlayerbotAI* botAI) { return new NearestTrapWithDamageValue(botAI); }
     static UntypedValue* enemy_healer_target(PlayerbotAI* botAI) { return new EnemyHealerTargetValue(botAI); }
     static UntypedValue* party_member_to_resurrect(PlayerbotAI* botAI) { return new PartyMemberToResurrect(botAI); }
     static UntypedValue* party_member_to_dispel(PlayerbotAI* botAI) { return new PartyMemberToDispel(botAI); }

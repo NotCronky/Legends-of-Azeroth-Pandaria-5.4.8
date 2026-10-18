@@ -111,6 +111,36 @@ public:
     bool Execute(Event event) override;
 };
 
+// Melee damage dealers step behind a target that faces them and isn't on them
+class SetBehindTargetAction : public CombatFormationMoveAction
+{
+public:
+    SetBehindTargetAction(PlayerbotAI* botAI) : CombatFormationMoveAction(botAI, "set behind") {}
+
+    bool Execute(Event event) override;
+};
+
+// Step out of harmful ground effects: an aura from a dynamic object (Rain of Fire), a damaging trap, or a
+// trigger creature that pulses damage
+class AvoidAoeAction : public MovementAction
+{
+public:
+    AvoidAoeAction(PlayerbotAI* botAI, int moveInterval = 1000) : MovementAction(botAI, "avoid aoe"), moveInterval(moveInterval) {}
+
+    bool isUseful() override;
+    bool Execute(Event event) override;
+
+protected:
+    bool AvoidAuraWithDynamicObj();
+    bool AvoidGameObjectWithDamage();
+    bool AvoidUnitWithDamageAura();
+    void Tell(SpellInfo const* spellInfo, float radius, char const* source);
+
+    time_t lastTellTimer = 0;
+    uint32 lastMoveTimer = 0;
+    int moveInterval;
+};
+
 class SetFacingTargetAction : public Action
 {
 public:

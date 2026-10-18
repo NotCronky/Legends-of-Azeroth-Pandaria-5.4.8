@@ -32,7 +32,9 @@
 #include "Random.h"
 #include "ServerFacade.h"
 #include "SharedDefines.h"
+#include "DynamicObject.h"
 #include "SpellAuraEffects.h"
+#include "SpellAuras.h"
 #include "SpellInfo.h"
 
 #include "Timer.h"
@@ -1460,4 +1462,170 @@ bool TankFaceAction::Execute(Event event)
         return false;
     Position nearest = GetNearestPosition(availablePos);
     return MoveTo(bot->GetMapId(), nearest.GetPositionX(), nearest.GetPositionY(), nearest.GetPositionZ(), false, false, false, true, MovementPriority::MOVEMENT_COMBAT);
+}
+
+bool SetBehindTargetAction::Execute(Event /*event*/)
+{
+    Unit* target = AI_VALUE(Unit*, "current target");
+    if (!target || target->GetVictim() == bot)
+        return false;
+
+    if (!bot->IsWithinMeleeRange(target) || target->isMoving())
+        return false;
+
+    // Only when in front of the target (within 90 degrees of where it faces)
+    float deltaAngle = Position::NormalizeOrientation(target->GetOrientation() - target->GetAngle(bot));
+    if (deltaAngle > M_PI)
+        deltaAngle -= 2.0f * M_PI; // -PI..PI
+
+    if (fabs(deltaAngle) > M_PI_2)
+        return false;
+
+    float goodAngle1 = Position::NormalizeOrientation(target->GetOrientation() + M_PI * 3 / 5);
+    float goodAngle2 = Position::NormalizeOrientation(target->GetOrientation() - M_PI * 3 / 5);
+
+    float dist = std::max(bot->GetExactDist(target), bot->GetMeleeRange(target) / 2) - bot->GetCombatReach() - target->GetCombatReach();
+    std::list<FleeInfo>& infoList = AI_VALUE(std::list<FleeInfo>&, "recently flee info");
+    std::vector<Position> availablePos;
+    for (float angle : { goodAngle1, goodAngle2 })
+    {
+        float x, y, z;
+        target->GetNearPoint(bot, x, y, z, dist, angle);
+        if (!bot->GetMap()->CheckCollisionAndGetValidCoords(bot, bot->GetPositionX(), bot->GetPositionY(), bot->GetPositionZ(), x, y, z))
+            continue;
+
+        Position pos(x, y, z);
+        if (CheckLastFlee(bot->GetAngle(&pos), infoList))
+            availablePos.push_back(pos);
+    }
+
+    if (availablePos.empty())
+        return false;
+
+    Position nearest = GetNearestPosition(availablePos);
+    return MoveTo(bot->GetMapId(), nearest.GetPositionX(), nearest.GetPositionY(), nearest.GetPositionZ(), false, false, false, true, MovementPriority::MOVEMENT_COMBAT);
+}
+
+bool AvoidAoeAction::isUseful()
+{
+    if (getMSTimeDiff(lastMoveTimer, getMSTime()) < uint32(moveInterval))
+        return false;
+
+    return AI_VALUE(Aura*, "area debuff") || !AI_VALUE(GuidVector, "nearest trap with damage").empty() ||
+           !AI_VALUE(GuidVector, "possible triggers").empty();
+}
+
+bool AvoidAoeAction::Execute(Event /*event*/)
+{
+    return AvoidAuraWithDynamicObj() || AvoidGameObjectWithDamage() || AvoidUnitWithDamageAura();
+}
+
+void AvoidAoeAction::Tell(SpellInfo const* spellInfo, float radius, char const* source)
+{
+    lastMoveTimer = getMSTime();
+    if (!sPlayerbotAIConfig->tellWhenAvoidAoe || lastTellTimer >= time(nullptr) - 10)
+        return;
+
+    lastTellTimer = time(nullptr);
+    std::ostringstream out;
+    out << "I'm avoiding " << spellInfo->SpellName << " (" << spellInfo->Id << ") Radius " << radius << " - [" << source << "]";
+    bot->Say(out.str(), LANG_UNIVERSAL);
+}
+
+bool AvoidAoeAction::AvoidAuraWithDynamicObj()
+{
+    Aura* aura = AI_VALUE(Aura*, "area debuff");
+    if (!aura || aura->IsRemoved() || aura->IsExpired() || aura->GetType() != DYNOBJ_AURA_TYPE)
+        return false;
+
+    SpellInfo const* spellInfo = aura->GetSpellInfo();
+    if (!spellInfo || sPlayerbotAIConfig->aoeAvoidSpellWhitelist.count(spellInfo->Id))
+        return false;
+
+    DynamicObject* dynOwner = aura->GetDynobjOwner();
+    if (!dynOwner || !dynOwner->IsInWorld())
+        return false;
+
+    float radius = dynOwner->GetRadius();
+    if (!radius || radius > sPlayerbotAIConfig->maxAoeAvoidRadius || bot->GetDistance(dynOwner) > radius)
+        return false;
+
+    if (!FleePosition(dynOwner->GetPosition(), radius))
+        return false;
+
+    Tell(spellInfo, radius, "Aura");
+    return true;
+}
+
+bool AvoidAoeAction::AvoidGameObjectWithDamage()
+{
+    for (ObjectGuid const& guid : AI_VALUE(GuidVector, "nearest trap with damage"))
+    {
+        GameObject* go = botAI->GetGameObject(guid);
+        if (!go || !go->IsInWorld() || go->GetGoType() != GAMEOBJECT_TYPE_TRAP)
+            continue;
+
+        GameObjectTemplate const* goInfo = go->GetGOInfo();
+        // 0: a trap that stays after casting (1 despawns, 2 is a bomb cast on spawn)
+        if (!goInfo || goInfo->trap.type != 0 || !goInfo->trap.spellId)
+            continue;
+
+        if (sPlayerbotAIConfig->aoeAvoidSpellWhitelist.count(goInfo->trap.spellId))
+            continue;
+
+        SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(goInfo->trap.spellId);
+        if (!spellInfo || spellInfo->IsPositive())
+            continue;
+
+        float radius = float(goInfo->trap.radius) + go->GetCombatReach();
+        if (!radius || radius > sPlayerbotAIConfig->maxAoeAvoidRadius || bot->GetDistance(go) > radius)
+            continue;
+
+        if (FleePosition(go->GetPosition(), radius))
+        {
+            Tell(spellInfo, radius, "Trap");
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool AvoidAoeAction::AvoidUnitWithDamageAura()
+{
+    for (ObjectGuid const& guid : AI_VALUE(GuidVector, "possible triggers"))
+    {
+        Unit* unit = botAI->GetUnit(guid);
+        if (!unit || !unit->IsInWorld() || !unit->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE))
+            continue;
+
+        for (AuraType type : { SPELL_AURA_PERIODIC_TRIGGER_SPELL, SPELL_AURA_PERIODIC_TRIGGER_SPELL_WITH_VALUE })
+        {
+            for (AuraEffect* aurEff : unit->GetAuraEffectsByType(type))
+            {
+                SpellInfo const* spellInfo = aurEff->GetSpellInfo();
+                SpellInfo const* triggered = spellInfo ? sSpellMgr->GetSpellInfo(spellInfo->Effects[aurEff->GetEffIndex()].TriggerSpell) : nullptr;
+                if (!triggered || sPlayerbotAIConfig->aoeAvoidSpellWhitelist.count(triggered->Id))
+                    continue;
+
+                for (uint8 i = 0; i < MAX_SPELL_EFFECTS; ++i)
+                {
+                    if (triggered->Effects[i].Effect != SPELL_EFFECT_SCHOOL_DAMAGE)
+                        continue;
+
+                    float radius = triggered->Effects[i].CalcRadius();
+                    if (!radius || radius > sPlayerbotAIConfig->maxAoeAvoidRadius || bot->GetDistance(unit) > radius)
+                        continue;
+
+                    if (FleePosition(unit->GetPosition(), radius))
+                    {
+                        Tell(triggered, radius, "Unit Trigger");
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+
+    return false;
 }

@@ -68,6 +68,8 @@ public:
         creators["dismount"] = &ActionContext::dismount;
 
         creators["tank face"] = &ActionContext::tank_face;
+        creators["set behind"] = &ActionContext::set_behind;
+        creators["avoid aoe"] = &ActionContext::avoid_aoe;
         creators["tank assist"] = &ActionContext::tank_assist;
         creators["set facing"] = &ActionContext::set_facing;
         creators["drop target"] = &ActionContext::drop_target;
@@ -132,6 +134,8 @@ private:
     static Action* dismount(PlayerbotAI* botAI) { return new DismountAction(botAI); }
 
     static Action* tank_face(PlayerbotAI* botAI) { return new TankFaceAction(botAI); }
+    static Action* set_behind(PlayerbotAI* botAI) { return new SetBehindTargetAction(botAI); }
+    static Action* avoid_aoe(PlayerbotAI* botAI) { return new AvoidAoeAction(botAI); }
     static Action* tank_assist(PlayerbotAI* botAI) { return new TankAssistAction(botAI); }
     static Action* set_facing(PlayerbotAI* botAI) { return new SetFacingTargetAction(botAI); }
     static Action* drop_target(PlayerbotAI* botAI) { return new DropTargetAction(botAI); }
