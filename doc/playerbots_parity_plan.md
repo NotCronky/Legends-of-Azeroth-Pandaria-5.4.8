@@ -19,7 +19,7 @@ ported or is compiled but never switched on.
 | 0: make the existing code work | Done (2026-10-15) |
 | 1: chat commands | Done (2026-10-15): chat plumbing, control commands, and item, trade, quest, spell and talent commands. Other commands come with the systems they control |
 | 2: upkeep | Done (2026-10-17): looting, rolls, item usage, stat weights and upgrades (part 1); food, potions, vendors and mounts (part 2); talents and glyphs (part 3). Class buffs come with Phase 3 |
-| 3: class rotations for 5.4.8 | In progress: hunters (part 1, 2026-10-17); to-do list in the Phase 0 results |
+| 3: class rotations for 5.4.8 | In progress: hunters (part 1), casting fixes (part 2), rogues and weapons (part 3); to-do list in the Phase 0 results |
 | 4: life in the world | Not started |
 | 5: group content | Not started |
 
@@ -39,7 +39,7 @@ was left out are in the results sections at the end.
 | Mounts | Riding, flying licenses and mounts for random bots; bots mount with their master and dismount to fight |
 | Talents and glyphs | Per-specialization templates: talent columns for every tier, and the PvE major glyphs of Method's MoP Classic guides |
 | Bot creation | Talents, glyphs, gear, mounts and potions when a random bot is created or levels up; druids can be all four specializations |
-| Class rotations | Hunters: Beast Mastery, Marksmanship and Survival rotations around 5.4.8 abilities, and their pets |
+| Class rotations | Hunters (Beast Mastery, Marksmanship, Survival, and their pets) and rogues (Assassination, Combat, Subtlety) around 5.4.8 abilities |
 | Not yet | Class rotations for 5.4.8 for the other classes (monks have none at all), class buffs, questing, travel by flight path, dungeons, battlegrounds |
 
 ### Fixes along the way
@@ -639,3 +639,42 @@ Shot when the target dies, and Auto Shot during Deterrence.
 - Beast Mastery wasn't tested after the fix: the one Beast Mastery bot re-randomized to Survival.
 - Aimed Shot only goes with Fire! (Master Marksman, 34487); not yet seen.
 - Steady Shot is started on targets about to die.
+
+## Phase 3 results, part 3: rogues and weapons (2026-10-18)
+
+### Baseline for the other classes
+
+A 10-minute run with every cast and cast failure logged, after the part 2 fixes (bots per specialization
+are few, so this shows what breaks, not exact rates):
+
+| Class | What the bots cast |
+|---|---|
+| Rogue | Sinister Strike only, and Stealth failing about 1000 times (fixed below) |
+| Death Knight | Raise Dead only: no death knight had a weapon (fixed below), and the strategies use WotLK spells |
+| Paladin (Retribution) | Flash of Light only |
+| Shaman | Elemental nothing; Enhancement Earth Shock only |
+| Monk | Nothing: no class AI |
+| Druid | Feral Tiger's Fury only; Balance mostly Wrath |
+| Priest | Discipline and Holy Smite only; Shadow Mind Flay, Mind Blast and Renew |
+| Warlock, Mage, Warrior, Hunter | Reasonable rotations |
+
+### Done
+
+- **Rogue AI:** the rogue trigger factory was empty, so no rogue trigger was registered; rogues used only
+  their default action, and "enemy out of melee" cast Stealth in combat. Rewritten like the hunter:
+  `assassination`, `combat` and `subtlety` by specialization on a generic rogue strategy (openers from
+  stealth, Slice and Dice, finishers at five combo points or two on a dying target, Kick, Evasion,
+  Feint, Tricks of the Trade on the main tank), `boost` (Shadow Blades), `aoe` (Fan of Knives) and MoP
+  poisons as self buffs. In test: Subtlety used Hemorrhage, Backstab, Ambush with Shadow Dance and
+  Premeditation, Slice and Dice and Eviscerate; Combat used Sinister Strike, Revealing Strike, Slice
+  and Dice, Eviscerate, Adrenaline Rush, Killing Spree and Blade Flurry. The Stealth failures are gone.
+- **Weapons:** `ShouldEquipWeaponForSpec` had no death knight case and refused them every weapon; death
+  knights now take two-handers, Combat rogues any one-hander. Candidates skip items that need a
+  reputation, the main hand is chosen before the off-hand, and item types with nothing for the bot no
+  longer use up the tries (1 to 4 candidates per weapon slot before, 25 now).
+
+### Not done
+
+- No Assassination rogue fought in the test runs.
+- Rogues don't stealth to open on a target out of combat; openers only follow Vanish or Shadow Dance.
+- Death knights still have no working rotation: next in this phase.
