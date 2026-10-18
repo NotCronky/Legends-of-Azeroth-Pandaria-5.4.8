@@ -19,7 +19,7 @@ ported or is compiled but never switched on.
 | 0: make the existing code work | Done (2026-10-15) |
 | 1: chat commands | Done (2026-10-15): chat plumbing, control commands, and item, trade, quest, spell and talent commands. Other commands come with the systems they control |
 | 2: upkeep | Done (2026-10-17): looting, rolls, item usage, stat weights and upgrades (part 1); food, potions, vendors and mounts (part 2); talents and glyphs (part 3). Class buffs come with Phase 3 |
-| 3: class rotations for 5.4.8 | In progress: hunters (part 1), casting fixes (part 2), rogues and weapons (part 3); to-do list in the Phase 0 results |
+| 3: class rotations for 5.4.8 | Rotations written for every class (parts 1 to 4, 2026-10-18); in-game PvE testing, group healing and the Mage and Warlock cleanup remain |
 | 4: life in the world | Not started |
 | 5: group content | Not started |
 
@@ -39,8 +39,8 @@ was left out are in the results sections at the end.
 | Mounts | Riding, flying licenses and mounts for random bots; bots mount with their master and dismount to fight |
 | Talents and glyphs | Per-specialization templates: talent columns for every tier, and the PvE major glyphs of Method's MoP Classic guides |
 | Bot creation | Talents, glyphs, gear, mounts and potions when a random bot is created or levels up; druids can be all four specializations |
-| Class rotations | Hunters (Beast Mastery, Marksmanship, Survival, and their pets) and rogues (Assassination, Combat, Subtlety) around 5.4.8 abilities |
-| Not yet | Class rotations for 5.4.8 for the other classes (monks have none at all), class buffs, questing, travel by flight path, dungeons, battlegrounds |
+| Class rotations | Every specialization of hunters, rogues, death knights, paladins, shamans, druids, priests and monks around 5.4.8 abilities, with their buffs, cures and resurrections; warriors, mages and warlocks keep their earlier rotations |
+| Not yet | Tested healing and tanking in groups, questing, travel by flight path, dungeons, battlegrounds |
 
 ### Fixes along the way
 
@@ -678,3 +678,54 @@ are few, so this shows what breaks, not exact rates):
 - No Assassination rogue fought in the test runs.
 - Rogues don't stealth to open on a target out of combat; openers only follow Vanish or Shadow Dance.
 - Death knights still have no working rotation: next in this phase.
+
+## Phase 3 results, part 4: the other classes (2026-10-18)
+
+Death knights, paladins, shamans, druids, priests and monks rewritten in one pass, from the 5.4.8 priority
+lists of Icy Veins and Warcraft Tavern's MoP Classic guides, then built and run with 50 random bots without
+tuning each specialization: the user plays PvE content with them next to find what needs work.
+
+### Done
+
+- **Why they failed:** every one of these classes had an empty trigger factory, so no class trigger
+  fired, and most actions were WotLK spells (Blood Strike, Unbreakable Armor, Seal of Command, totems
+  of WotLK, Tree of Life, Lesser Heal...). Monks had no class AI at all.
+- **Death knight:** Frost (two-hander), Unholy and Blood (tank). Rune costs are checked like the core
+  does it; death runes stand in for any.
+- **Paladin:** Retribution, Protection (tank) and Holy (healer); MoP blessings (Kings, else Might when
+  someone else has the stats buff) and seals. Retribution now gets the DPS role.
+- **Shaman:** Elemental, Enhancement and Restoration (healer); totems, the specialization's main-hand
+  imbue, Lightning or Water Shield, Earth Shield on the main tank.
+- **Druid:** Balance (Eclipse-driven Wrath and Starfire), Feral (cat; always DPS now), Guardian (bear tank)
+  and Restoration (healer).
+- **Priest:** Shadow, Discipline and Holy (healers), and Smite/Holy Fire for a healer with no group.
+- **Monk:** Brewmaster (tank), Windwalker and Mistweaver (healer); `addclass` can add monks.
+- **For every class:** a cure strategy for its dispels and a group resurrection out of combat.
+- **Generic:** the "aoe heal" value (group members below a health level) and the "enemy healer target"
+  value didn't exist, so every group-heal trigger and every "... on enemy healer" interrupt was dead in
+  every class; both written and registered, with the party-member-dead and healer-should-attack triggers.
+
+### Test results
+
+| Class | Cast in a 10-minute run |
+|---|---|
+| Death knight (Blood) | Icy Touch, Plague Strike, Death Strike, Death Coil, Raise Dead |
+| Paladin | Retribution: Templar's Verdict, Exorcism, Judgment, Crusader Strike, Hammer of Wrath, Inquisition, Avenging Wrath, Guardian of Ancient Kings; Protection: Shield of the Righteous, Avenger's Shield, Consecration, Holy Wrath, Execution Sentence, Rebuke |
+| Druid (Balance) | Wrath and Starfire by Eclipse, Starsurge, Moonfire, Sunfire, Starfall, Celestial Alignment |
+| Priest (Shadow) | Shadowform, Vampiric Touch, Shadow Word: Pain, Mind Blast, Devouring Plague, Mind Flay |
+| Monk | Jab, Tiger Palm, Blackout Kick, Chi Wave, Expel Harm, Spear Hand Strike, Touch of Death, stances |
+| Shaman | Enhancement Primal Strike and Earth Shock; Restoration without a group: Lightning Bolt, Lava Burst |
+
+The spell check finds no spell these classes can't learn (its one Druid entry, "caster form", is an
+action that leaves animal forms). Two problems seen and fixed: Feral cast Mark of the Wild in cat form
+(262 failures), and shamans swapped Lightning and Water Shield.
+
+### Not done
+
+- Healing and tanking in groups: random bots rarely group, so healers only showed their solo damage.
+- Few bots of each specialization fought (Frost and Unholy death knights, Elemental shamans, Windwalker
+  monks barely did); their rotations are untested.
+- Holy Word spells (they replace Holy Word: Chastise by Chakra; the bot can't cast them by name).
+- Enhancement's off-hand imbue; tigereye, elusive and mana tea brews; Feral Predatory Swiftness.
+- Mage and Warlock cleanup (the spell check still lists 19 Warlock actions), class buffs for warriors.
+- Unregistered generic names in every class: "combat formation move", "stay line", "combat stuck".
