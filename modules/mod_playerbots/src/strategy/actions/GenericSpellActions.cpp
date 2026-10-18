@@ -17,6 +17,7 @@
 
 #include "GenericSpellActions.h"
 
+#include "DBCStores.h"
 #include "Event.h"
 //#include "ItemTemplate.h"
 #include "ObjectDefines.h"
@@ -25,6 +26,35 @@
 #include "Playerbots.h"
 #include "ServerFacade.h"
 #include "WorldPacket.h"
+
+namespace
+{
+    // Ready runes for the spell, death runes standing in for any kind, as Spell::CheckRuneCost counts them.
+    // Cost mods count (Rime makes Howling Blast free), applied with no spell so no charge is used up
+    bool HasRunesFor(Player* bot, SpellInfo const* spellInfo)
+    {
+        SpellRuneCostEntry const* runeCost = sSpellRuneCostStore.LookupEntry(spellInfo->RuneCostID);
+        if (!runeCost || runeCost->NoRuneCost())
+            return true;
+
+        int32 needed[NUM_RUNE_TYPES];
+        for (uint32 i = 0; i < NUM_RUNE_TYPES; ++i)
+        {
+            needed[i] = runeCost->RuneCost[i];
+            bot->ApplySpellMod(spellInfo->Id, SPELLMOD_COST, needed[i]);
+        }
+
+        for (uint8 i = 0; i < MAX_RUNES; ++i)
+            if (bot->GetRune(i).State == RuneState::Ready)
+                --needed[bot->GetCurrentRune(i)];
+
+        for (uint32 i = 0; i < RUNE_DEATH; ++i)
+            if (needed[i] > 0)
+                needed[RUNE_DEATH] += needed[i];
+
+        return needed[RUNE_DEATH] <= 0;
+    }
+}
 
 CastSpellAction::CastSpellAction(PlayerbotAI* botAI, std::string const spell)
     : Action(botAI, spell), range(botAI->GetRange("spell")), spell(spell)
@@ -125,7 +155,12 @@ bool CastSpellAction::isPossible()
     {
         int32 powerIndex = -1;
         Powers power = spellInfo->GetPowerType(bot, &powerIndex);
-        if (powerIndex >= 0 && power != POWER_HEALTH)
+        if (power == POWER_RUNES)
+        {
+            if (!HasRunesFor(bot, spellInfo))
+                return false;
+        }
+        else if (powerIndex >= 0 && power != POWER_HEALTH)
         {
             int32 cost = spellInfo->CalcPowerCost(bot, spellInfo->GetSchoolMask(), powerIndex);
             if (cost > 0 && int32(bot->GetPower(power)) < cost)
