@@ -10,41 +10,81 @@
 
 class PlayerbotAI;
 
-class CastEvasionAction : public CastBuffSpellAction
+// -- combo point builders
+MELEE_ACTION(CastSinisterStrikeAction, "sinister strike");
+MELEE_ACTION(CastMutilateAction, "mutilate");
+MELEE_ACTION(CastDispatchAction, "dispatch");
+MELEE_ACTION(CastBackstabAction, "backstab");
+MELEE_ACTION(CastHemorrhageAction, "hemorrhage");
+MELEE_ACTION(CastRevealingStrikeAction, "revealing strike");
+MELEE_ACTION(CastAmbushAction, "ambush");
+MELEE_ACTION(CastGarroteAction, "garrote");
+MELEE_ACTION(CastCheapShotAction, "cheap shot");
+
+// -- finishers
+MELEE_ACTION(CastEviscerateAction, "eviscerate");
+MELEE_ACTION(CastEnvenomAction, "envenom");
+MELEE_ACTION(CastRuptureAction, "rupture");
+BUFF_ACTION(CastSliceAndDiceAction, "slice and dice");
+
+// -- cooldowns
+MELEE_ACTION(CastVendettaAction, "vendetta");
+BUFF_ACTION(CastAdrenalineRushAction, "adrenaline rush");
+MELEE_ACTION(CastKillingSpreeAction, "killing spree");
+BUFF_ACTION(CastShadowDanceAction, "shadow dance");
+BUFF_ACTION(CastShadowBladesAction, "shadow blades");
+SPELL_ACTION(CastPremeditationAction, "premeditation");
+
+// -- utility and survival
+MELEE_ACTION(CastKickAction, "kick");
+ENEMY_HEALER_ACTION(CastKickOnEnemyHealerAction, "kick");
+BUFF_ACTION(CastEvasionAction, "evasion");
+BUFF_ACTION(CastFeintAction, "feint");
+BUFF_ACTION(CastCloakOfShadowsAction, "cloak of shadows");
+BUFF_ACTION(CastSprintAction, "sprint");
+
+// -- area
+class CastFanOfKnivesAction : public CastMeleeSpellAction
 {
 public:
-    CastEvasionAction(PlayerbotAI* botAI) : CastBuffSpellAction(botAI, "evasion") {}
+    CastFanOfKnivesAction(PlayerbotAI* botAI) : CastMeleeSpellAction(botAI, "fan of knives") {}
+
+    ActionThreatType getThreatType() override { return ActionThreatType::Aoe; }
 };
 
-class CastCloakOfShadowsAction : public CastBuffSpellAction
+class CastCrimsonTempestAction : public CastMeleeSpellAction
 {
 public:
-    CastCloakOfShadowsAction(PlayerbotAI* botAI) : CastBuffSpellAction(botAI, "cloak of shadows") {}
+    CastCrimsonTempestAction(PlayerbotAI* botAI) : CastMeleeSpellAction(botAI, "crimson tempest") {}
+
+    ActionThreatType getThreatType() override { return ActionThreatType::Aoe; }
 };
 
-class CastHungerForBloodAction : public CastBuffSpellAction
-{
-public:
-    CastHungerForBloodAction(PlayerbotAI* botAI) : CastBuffSpellAction(botAI, "hunger for blood") {}
-    std::string const GetTargetName() override { return "current target"; }
-};
+// A toggle: casting it again while it is up turns it off, which BUFF_ACTION's isUseful prevents
+BUFF_ACTION(CastBladeFlurryAction, "blade flurry");
 
-class CastSprintAction : public CastBuffSpellAction
-{
-public:
-    CastSprintAction(PlayerbotAI* botAI) : CastBuffSpellAction(botAI, "sprint") {}
+// -- poisons (self buffs in MoP)
+BUFF_ACTION(CastDeadlyPoisonAction, "deadly poison");
+BUFF_ACTION(CastWoundPoisonAction, "wound poison");
+BUFF_ACTION(CastCripplingPoisonAction, "crippling poison");
+BUFF_ACTION(CastMindNumbingPoisonAction, "mind-numbing poison");
 
-    std::string const GetTargetName() override { return "self target"; }
-};
-
+// Stealth to open on a target; not with a battleground flag
 class CastStealthAction : public CastBuffSpellAction
 {
 public:
     CastStealthAction(PlayerbotAI* botAI) : CastBuffSpellAction(botAI, "stealth") {}
 
-    std::string const GetTargetName() override { return "self target"; }
-
     bool isPossible() override;
+};
+
+// Vanish to drop threat; not with a battleground flag
+class CastVanishAction : public CastBuffSpellAction
+{
+public:
+    CastVanishAction(PlayerbotAI* botAI) : CastBuffSpellAction(botAI, "vanish") {}
+
+    bool isUseful() override;
 };
 
 class UnstealthAction : public Action
@@ -55,95 +95,12 @@ public:
     bool Execute(Event event) override;
 };
 
-class CheckStealthAction : public Action
-{
-public:
-    CheckStealthAction(PlayerbotAI* botAI) : Action(botAI, "check stealth") {}
-
-    bool isPossible() override { return true; }
-    bool Execute(Event event) override;
-};
-
-class CastKickAction : public CastSpellAction
-{
-public:
-    CastKickAction(PlayerbotAI* botAI) : CastSpellAction(botAI, "kick") {}
-};
-
-class CastFeintAction : public CastBuffSpellAction
-{
-public:
-    CastFeintAction(PlayerbotAI* botAI) : CastBuffSpellAction(botAI, "feint") {}
-};
-
-class CastDismantleAction : public CastSpellAction
-{
-public:
-    CastDismantleAction(PlayerbotAI* botAI) : CastSpellAction(botAI, "dismantle") {}
-};
-
-class CastDistractAction : public CastSpellAction
-{
-public:
-    CastDistractAction(PlayerbotAI* botAI) : CastSpellAction(botAI, "distract") {}
-};
-
-class CastVanishAction : public CastBuffSpellAction
-{
-public:
-    CastVanishAction(PlayerbotAI* botAI) : CastBuffSpellAction(botAI, "vanish") {}
-
-    bool isUseful() override;
-};
-
-class CastBlindAction : public CastDebuffSpellAction
-{
-public:
-    CastBlindAction(PlayerbotAI* botAI) : CastDebuffSpellAction(botAI, "blind") {}
-};
-
-class CastBladeFlurryAction : public CastBuffSpellAction
-{
-public:
-    CastBladeFlurryAction(PlayerbotAI* botAI) : CastBuffSpellAction(botAI, "blade flurry") {}
-};
-
-class CastAdrenalineRushAction : public CastBuffSpellAction
-{
-public:
-    CastAdrenalineRushAction(PlayerbotAI* botAI) : CastBuffSpellAction(botAI, "adrenaline rush") {}
-};
-
-class CastKillingSpreeAction : public CastMeleeSpellAction
-{
-public:
-    CastKillingSpreeAction(PlayerbotAI* botAI) : CastMeleeSpellAction(botAI, "killing spree") {}
-};
-
-class CastKickOnEnemyHealerAction : public CastSpellOnEnemyHealerAction
-{
-public:
-    CastKickOnEnemyHealerAction(PlayerbotAI* botAI) : CastSpellOnEnemyHealerAction(botAI, "kick") {}
-};
-
-class EnvenomAction : public CastMeleeSpellAction
-{
-public:
-    EnvenomAction(PlayerbotAI* ai) : CastMeleeSpellAction(ai, "envenom") {}
-};
-
 class CastTricksOfTheTradeOnMainTankAction : public BuffOnMainTankAction
 {
 public:
-    CastTricksOfTheTradeOnMainTankAction(PlayerbotAI* ai) : BuffOnMainTankAction(ai, "tricks of the trade", true) {}
-    virtual bool isUseful() override;
-};
+    CastTricksOfTheTradeOnMainTankAction(PlayerbotAI* botAI) : BuffOnMainTankAction(botAI, "tricks of the trade", true) {}
 
-class FanOfKnivesAction : public CastMeleeSpellAction
-{
-public:
-    FanOfKnivesAction(PlayerbotAI* ai) : CastMeleeSpellAction(ai, "fan of knives") {}
-    ActionThreatType getThreatType() override { return ActionThreatType::Aoe; }
+    bool isUseful() override;
 };
 
 #endif

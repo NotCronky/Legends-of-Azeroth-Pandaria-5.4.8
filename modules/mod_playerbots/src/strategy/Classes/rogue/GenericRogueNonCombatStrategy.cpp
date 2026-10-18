@@ -7,23 +7,22 @@
 
 #include "Playerbots.h"
 
-class GenericRogueNonCombatStrategyActionNodeFactory : public NamedObjectFactory<ActionNode>
+namespace
 {
-public:
-    GenericRogueNonCombatStrategyActionNodeFactory()
+    class GenericRogueNonCombatStrategyActionNodeFactory : public NamedObjectFactory<ActionNode>
     {
-        creators["use deadly poison on off hand"] = &use_deadly_poison_on_off_hand;
-    }
+    public:
+        GenericRogueNonCombatStrategyActionNodeFactory()
+        {
+            creators["deadly poison"] = &deadly_poison;
+            creators["crippling poison"] = &crippling_poison;
+        }
 
-private:
-    static ActionNode* use_deadly_poison_on_off_hand(PlayerbotAI* botAI)
-    {
-        return new ActionNode("use deadly poison on off hand",
-                              /*P*/ nullptr,
-                              /*A*/ NextAction::array(0, new NextAction("use instant poison on off hand"), nullptr),
-                              /*C*/ nullptr);
-    }
-};
+    private:
+        ACTION_NODE_A(deadly_poison, "deadly poison", "wound poison");
+        ACTION_NODE_A(crippling_poison, "crippling poison", "mind-numbing poison");
+    };
+}
 
 GenericRogueNonCombatStrategy::GenericRogueNonCombatStrategy(PlayerbotAI* botAI) : NonCombatStrategy(botAI)
 {
@@ -34,25 +33,13 @@ void GenericRogueNonCombatStrategy::InitTriggers(std::vector<TriggerNode*>& trig
 {
     NonCombatStrategy::InitTriggers(triggers);
 
-    triggers.push_back(new TriggerNode("player has flag",
-                                       NextAction::array(0, new NextAction("sprint", ACTION_EMERGENCY + 1), nullptr)));
-    triggers.push_back(new TriggerNode("enemy flagcarrier near",
-                                       NextAction::array(0, new NextAction("sprint", ACTION_EMERGENCY + 2), nullptr)));
-    // triggers.push_back(new TriggerNode("unstealth", NextAction::array(0, new NextAction("unstealth", 1.0f),
-    // nullptr))); triggers.push_back(new TriggerNode("often", NextAction::array(0, new NextAction("apply
-    // poison", 1.0f), nullptr)));
+    triggers.push_back(new TriggerNode("player has flag", NextAction::array(0, new NextAction("sprint", ACTION_EMERGENCY + 1), nullptr)));
+    triggers.push_back(new TriggerNode("enemy flagcarrier near", NextAction::array(0, new NextAction("sprint", ACTION_EMERGENCY + 2), nullptr)));
 
-    triggers.push_back(
-        new TriggerNode("main hand weapon no enchant",
-                        NextAction::array(0, new NextAction("use instant poison on main hand", 20.0f), NULL)));
+    // MoP poisons are self buffs that last an hour
+    triggers.push_back(new TriggerNode("lethal poison", NextAction::array(0, new NextAction("deadly poison", 20.0f), nullptr)));
+    triggers.push_back(new TriggerNode("non-lethal poison", NextAction::array(0, new NextAction("crippling poison", 19.0f), nullptr)));
 
-    triggers.push_back(
-        new TriggerNode("off hand weapon no enchant",
-                        NextAction::array(0, new NextAction("use deadly poison on off hand", 19.0f), NULL)));
-
-    // triggers.push_back(new TriggerNode(
-    // 	"off hand weapon no enchant",
-    // 	NextAction::array(0, new NextAction("use instant poison", 18.0f), NULL)));
-
-    triggers.push_back(new TriggerNode("often", NextAction::array(0, new NextAction("unstealth", 30.0f), NULL)));
+    // Stealth (after Vanish) slows the bot down out of combat
+    triggers.push_back(new TriggerNode("often", NextAction::array(0, new NextAction("unstealth", 30.0f), nullptr)));
 }

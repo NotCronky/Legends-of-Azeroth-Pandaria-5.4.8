@@ -343,13 +343,13 @@ void AiFactory::AddDefaultCombatStrategies(Player* player, PlayerbotAI* const fa
         case CLASS_ROGUE:
         {
             if (spec == Specializations::SPEC_ROGUE_ASSASSINATION)
-            {
-                engine->addStrategiesNoInit("melee", "dps assist", "aoe", /*"behind",*/ nullptr);
-            }
+                engine->addStrategy("assassination", false);
+            else if (spec == Specializations::SPEC_ROGUE_SUBTLETY)
+                engine->addStrategy("subtlety", false);
             else
-            {
-                engine->addStrategiesNoInit("dps", "dps assist", "aoe", /*"behind",*/ nullptr);
-            }
+                engine->addStrategy("combat", false);
+
+            engine->addStrategiesNoInit("dps assist", "aoe", nullptr);
             break;
         }
         case CLASS_WARLOCK:

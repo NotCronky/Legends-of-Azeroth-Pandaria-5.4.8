@@ -10,6 +10,7 @@
 
 class PlayerbotAI;
 
+// Keep poisons up out of combat
 class GenericRogueNonCombatStrategy : public NonCombatStrategy
 {
 public:

@@ -6,42 +6,25 @@
 #include "RogueActions.h"
 
 #include "Event.h"
-#include "ObjectGuid.h"
-#include "Player.h"
 #include "Playerbots.h"
 
-bool CastStealthAction::isPossible()
+namespace
 {
-    // do not use with WSG flag or EYE flag
-    return !botAI->HasAura(23333, bot) && !botAI->HasAura(23335, bot) && !botAI->HasAura(34976, bot);
+    // Warsong Gulch flags and the Eye of the Storm flag
+    bool CarriesFlag(PlayerbotAI* botAI, Player* bot)
+    {
+        return botAI->HasAura(23333, bot) || botAI->HasAura(23335, bot) || botAI->HasAura(34976, bot);
+    }
 }
 
-bool UnstealthAction::Execute(Event event)
+bool CastStealthAction::isPossible() { return !CarriesFlag(botAI, bot) && CastBuffSpellAction::isPossible(); }
+
+bool CastVanishAction::isUseful() { return !CarriesFlag(botAI, bot) && CastBuffSpellAction::isUseful(); }
+
+bool UnstealthAction::Execute(Event /*event*/)
 {
     botAI->RemoveAura("stealth");
-    // botAI->ChangeStrategy("+dps,-stealthed", BOT_STATE_COMBAT);
-
     return true;
-}
-
-bool CheckStealthAction::Execute(Event event)
-{
-    if (botAI->HasAura("stealth", bot))
-    {
-        botAI->ChangeStrategy("-dps,+stealthed", BOT_STATE_COMBAT);
-    }
-    else
-    {
-        botAI->ChangeStrategy("+dps,-stealthed", BOT_STATE_COMBAT);
-    }
-
-    return true;
-}
-
-bool CastVanishAction::isUseful()
-{
-    // do not use with WSG flag or EYE flag
-    return !botAI->HasAura(23333, bot) && !botAI->HasAura(23335, bot) && !botAI->HasAura(34976, bot);
 }
 
 bool CastTricksOfTheTradeOnMainTankAction::isUseful()
