@@ -13711,6 +13711,13 @@ void Unit::AddToWorld()
     RebuildTerrainSwaps();
 }
 
+void Unit::RemoveAllFollowers()
+{
+    // SetTarget(nullptr) takes the follower out of _followers
+    while (!_followers.empty())
+        (*_followers.begin())->SetTarget(nullptr);
+}
+
 void Unit::RemoveFromWorld()
 {
     // cleanup
@@ -13718,8 +13725,11 @@ void Unit::RemoveFromWorld()
 
     if (IsInWorld())
     {
-        
+
         GetMotionMaster()->Clear(false);                    // Do it here, because MovementInform may provoke casts.
+
+        // Units chasing or following this one would otherwise keep a pointer to it after it is deleted
+        RemoveAllFollowers();
 
         m_duringRemoveFromWorld = true;
         if (UnitAI* ai = GetAI())
