@@ -4,7 +4,7 @@ Comparison of `modules/mod_playerbots` (MoP 5.4.8) against AzerothCore
 [mod-playerbots](https://github.com/mod-playerbots/mod-playerbots) (WotLK 3.3.5,
 checkout dated 2026-09-20), and a plan to bring the MoP bots to parity.
 
-Audit date: 2026-10-15. Last updated: 2026-10-17.
+Audit date: 2026-10-15. Last updated: 2026-10-18.
 
 ## Summary
 
@@ -19,7 +19,7 @@ ported or is compiled but never switched on.
 | 0: make the existing code work | Done (2026-10-15) |
 | 1: chat commands | Done (2026-10-15): chat plumbing, control commands, and item, trade, quest, spell and talent commands. Other commands come with the systems they control |
 | 2: upkeep | Done (2026-10-17): looting, rolls, item usage, stat weights and upgrades (part 1); food, potions, vendors and mounts (part 2); talents and glyphs (part 3). Class buffs come with Phase 3 |
-| 3: class rotations for 5.4.8 | Rotations written for every class (parts 1 to 4, 2026-10-18); in-game PvE testing, group healing and the Mage and Warlock cleanup remain |
+| 3: class rotations for 5.4.8 | Rotations written for every class (parts 1 to 5, 2026-10-18), with avoid-aoe and behind-the-target strategies for dungeons; in-game PvE testing and group healing remain |
 | 4: life in the world | Not started |
 | 5: group content | Not started |
 
@@ -39,7 +39,8 @@ was left out are in the results sections at the end.
 | Mounts | Riding, flying licenses and mounts for random bots; bots mount with their master and dismount to fight |
 | Talents and glyphs | Per-specialization templates: talent columns for every tier, and the PvE major glyphs of Method's MoP Classic guides |
 | Bot creation | Talents, glyphs, gear, mounts and potions when a random bot is created or levels up; druids can be all four specializations |
-| Class rotations | Every specialization of hunters, rogues, death knights, paladins, shamans, druids, priests and monks around 5.4.8 abilities, with their buffs, cures and resurrections; warriors, mages and warlocks keep their earlier rotations |
+| Class rotations | Every specialization of hunters, rogues, death knights, paladins, shamans, druids, priests and monks, mages and warlocks around 5.4.8 abilities, with their buffs, cures and resurrections; warriors keep their earlier rotations |
+| Dungeons | Bots with a player master or in an instance step out of ground effects; melee DPS move behind the target, tanks face it away; healers save mana |
 | Not yet | Tested healing and tanking in groups, questing, travel by flight path, dungeons, battlegrounds |
 
 ### Fixes along the way
@@ -727,5 +728,50 @@ action that leaves animal forms). Two problems seen and fixed: Feral cast Mark o
   monks barely did); their rotations are untested.
 - Holy Word spells (they replace Holy Word: Chastise by Chakra; the bot can't cast them by name).
 - Enhancement's off-hand imbue; tigereye, elusive and mana tea brews; Feral Predatory Swiftness.
-- Mage and Warlock cleanup (the spell check still lists 19 Warlock actions), class buffs for warriors.
+- Class buffs for warriors (Mage and Warlock: done in part 5).
 - Unregistered generic names in every class: "combat formation move", "stay line", "combat stuck".
+
+## Phase 3 results, part 5: mages, warlocks and dungeon strategies (2026-10-18)
+
+The last two classes rewritten the same way as part 4, and the strategies that make bots easier to take
+through dungeons ported from AzerothCore, before the user tests PvE content.
+
+### Done
+
+- **Mage:** Arcane (Arcane Blast to four charges, Arcane Missiles on procs, Arcane Barrage when mana runs
+  low, Arcane Power), Fire (Fireball, Pyroblast on Pyroblast!, Inferno Blast on Heating Up, Combustion)
+  and Frost (Water Elemental, Frostbolt, Ice Lance on Fingers of Frost, Frostfire Bolt on Brain Freeze,
+  Icy Veins). Every mage: the specialization's armor, Arcane Brilliance, Mirror Image, Counterspell,
+  Remove Curse, Ice Block and Frost Nova or Dragon's Breath only when an enemy is in melee range.
+- **Warlock:** Affliction (Agony, Corruption, Unstable Affliction, Haunt, Malefic Grasp, Drain Soul below
+  20%), Demonology (Corruption, Hand of Gul'dan, Soul Fire on Molten Core, Shadow Bolt) and Destruction
+  (Immolate, Conflagrate, Incinerate, Chaos Bolt at three Burning Embers, Shadowburn). Each summons its
+  demon (Felguard for Demonology, Felhunter for Affliction, Imp for Destruction, falling back to what it
+  knows), casts Dark Intent and its Dark Soul, Life Taps only above half health, and makes a healthstone
+  when it has none and has room for one.
+- **Dungeon strategies:** `avoid aoe` (move out of harmful ground effects, damaging traps and damage auras
+  around enemies) and `behind` (melee DPS stand behind the target) were missing from the strategy
+  context; both are registered with the values and actions they need. `avoid aoe` is added to bots that
+  have a real player as master or are in an instance (`AiPlayerbot.AutoAvoidAoe`), and healers get `save
+  mana` (`AiPlayerbot.AutoSaveMana`). Tanks already had `tank face`.
+- **Warriors:** Dragon Roar and Demoralizing Shout now resolve (a misspelled spell name and an
+  unregistered trigger).
+
+### Test results
+
+A 7-minute run with 50 random bots exited cleanly. Fire mages cast Fireball, Pyroblast, Inferno Blast,
+Combustion, Mirror Image and Frost Nova; Demonology warlocks Shadow Bolt, Corruption and Soul Fire;
+Destruction (in the run before) Incinerate, Conflagrate and Dark Soul. The spell check lists no action
+any class can't learn apart from the druid "caster form" false positive. The first run found warlocks
+casting Create Healthstone 56 times with full bags; fixed.
+
+### Not done
+
+- `avoid aoe` and `behind` haven't run in a dungeon: random bots without a player master don't get
+  `avoid aoe` outside instances.
+- Few Frost mages, Arcane mages and Affliction warlocks fought; their rotations are untested.
+- Demonology Metamorphosis and Demonic Fury, Grimoire of Service and Sacrifice.
+- Many Fireballs and Shadow Bolts end interrupted (60 to 100 in a run, as before this change): the target
+  dies or the bot moves to follow mid-cast.
+- Still unregistered in every class: "combat formation move", "stay line", "combat stuck", and the `buff`
+  and `boost` strategies.
