@@ -47,6 +47,10 @@ was left out are in the results sections at the end.
 - Bot teleports are finished on the world thread only; they had corrupted creature event lists in
   dungeons (a worldserver crash).
 - The bot packet queue was handled newest first and without a lock; it is now a locked FIFO.
+- Units chasing or following a unit that leaves the world let go of it (the core never did): this was
+  the early crash during the hunter work and the crash on every shutdown. The worldserver also no
+  longer crashes after `main` (Eluna disabled, groups unloaded after the databases closed) and exits
+  with code 0.
 - Unregistered strategies, actions, triggers and values are logged instead of failing silently;
   unregistered values no longer return null.
 - Bots added with `addclass` no longer get the solo grind strategy and attack everything.
@@ -54,14 +58,6 @@ was left out are in the results sections at the end.
 
 ### Known issues
 
-- **The worldserver crashes on shutdown** with random bots online: `Map::UnloadAll` deletes a creature
-  whose chase movement still points at a removed bot (`ChaseMovementGenerator` destructor ->
-  `AbstractFollower::SetTarget`). It predates this work.
-- **An early worldserver crash seen once, not reproduced:** while the hunter AI was being written,
-  the server crashed within minutes in 4 of 7 runs, with creature event lists or the heap corrupted
-  on map threads. The next day the same code ran clean 8 times (one run for 20 minutes), including
-  hunters re-randomizing and taming new pets, and 3 more times (28 minutes) with the part 2 fixes; the
-  cause was not found. Details in the Phase 3 results.
 - Group rolls, `ll`, `s vendor`, `repair`, potions in combat and mounting with a player have been built
   and run, but not yet tested in game.
 
@@ -597,11 +593,17 @@ on map threads: `EventProcessor::AddEvent` from `Transport::UpdatePassengerPosit
 committed build before this work ran clean 4 times. The next day nothing crashed in 8 runs: with the
 hunter AI switched off (2), without Stampede (2), with all of it (1), with hunters re-randomizing with
 their pets (1) and taming new ones (1), and for 20 minutes (1); nor in 3 more runs (28 minutes) with
-the part 2 fixes, the last with hunters casting Stampede. Ruled out: threading in `InitPet` (the
-bot manager runs on the world thread while no map updates), duplicate pets in a slot, and Stampede
-copies of the current pet (bots have one pet and not the glyph). If it comes back, build with
-`-DCMAKE_BUILD_TYPE=Debug` or AddressSanitizer (without jemalloc) to catch the corruption where it
-happens; a pet riding a transport fits the first stack.
+the part 2 fixes, the last with hunters casting Stampede.
+
+**Found and fixed (2026-10-18).** It came back in Timeless Isle fights, with float data in a creature's
+event map. An AddressSanitizer build (`-DWITH_SANITIZER=1 -DNOJEM=1`, installed apart in `bin-asan`)
+reported use-after-free in its first 20 minutes: a Stampede copy, deleted when its 20 seconds were up,
+was still the target of the mob chasing it. `Unit::RemoveFromWorld` never cleared the unit's followers,
+so their next update or target change touched freed memory; any chased or followed unit that was
+deleted could do it, and Stampede made it frequent. The early guess that ruled Stampede out was wrong:
+bots roll Glyph of Stampede among their random minor glyphs, and with it Stampede copies the current
+pet four times. With `Unit::RemoveAllFollowers` (as in TrinityCore) a 20-minute AddressSanitizer run
+with Stampede casts reported nothing, and shutdowns are clean.
 
 ## Phase 3 results, part 2: casting fixes (2026-10-17)
 
