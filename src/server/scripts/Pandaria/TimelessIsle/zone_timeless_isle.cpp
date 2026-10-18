@@ -1112,20 +1112,23 @@ class npc_timeless_spectrals : public CreatureScript
 
                 events.Update(diff);
 
-                switch (me->GetEntry())
+                while (uint32 eventId = events.ExecuteEvent())
                 {
-                    case 73021:
-                        me->CastSpell(me->GetVictim(), SPELL_CHI_BURST);
-                        events.ScheduleEvent(EVENT_CHI_BURST, urand(6, 8) * IN_MILLISECONDS);
-                        break;
-                    case 73025:
-                        me->CastSpell(me, SPELL_HEALING_MISTS);
-                        events.ScheduleEvent(EVENT_HEALING_MISTS, urand(13, 15) * IN_MILLISECONDS);
-                        break;
-                    case 73018:
-                        me->CastSpell(me->GetVictim(), SPELL_SPINNING_CRANE_KICK);
-                        events.ScheduleEvent(EVENT_SPINNING_CRANE_KICK, urand(9, 12) * IN_MILLISECONDS);
-                        break;
+                    switch (eventId)
+                    {
+                        case EVENT_CHI_BURST:
+                            me->CastSpell(me->GetVictim(), SPELL_CHI_BURST);
+                            events.ScheduleEvent(EVENT_CHI_BURST, urand(6, 8) * IN_MILLISECONDS);
+                            break;
+                        case EVENT_HEALING_MISTS:
+                            me->CastSpell(me, SPELL_HEALING_MISTS);
+                            events.ScheduleEvent(EVENT_HEALING_MISTS, urand(13, 15) * IN_MILLISECONDS);
+                            break;
+                        case EVENT_SPINNING_CRANE_KICK:
+                            me->CastSpell(me->GetVictim(), SPELL_SPINNING_CRANE_KICK);
+                            events.ScheduleEvent(EVENT_SPINNING_CRANE_KICK, urand(9, 12) * IN_MILLISECONDS);
+                            break;
+                    }
                 }
 
                 DoMeleeAttackIfReady();
