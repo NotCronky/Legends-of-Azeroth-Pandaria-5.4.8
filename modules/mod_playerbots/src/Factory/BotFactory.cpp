@@ -1010,6 +1010,20 @@ void BotFactory::InitMounts()
         learnOne(flying);
 }
 
+namespace
+{
+    // Slots are filled from the last; the off-hand depends on the main hand (a two-hander leaves no room,
+    // a unique weapon can't be in both), so the main hand goes first
+    int32 MainHandFirst(int32 slot)
+    {
+        if (slot == EQUIPMENT_SLOT_OFFHAND)
+            return EQUIPMENT_SLOT_MAINHAND;
+        if (slot == EQUIPMENT_SLOT_MAINHAND)
+            return EQUIPMENT_SLOT_OFFHAND;
+        return slot;
+    }
+}
+
 void BotFactory::InitEquipment(bool incremental, bool second_chance)
 {
     // Candidates for a slot are random items of the bot's level; keep the one its spec values most
@@ -1018,8 +1032,9 @@ void BotFactory::InitEquipment(bool incremental, bool second_chance)
     uint32 blevel = bot->GetLevel();
     int32 delta = std::min(blevel, 10u);
 
-    for (int32 slot = (int32)EQUIPMENT_SLOT_TABARD; slot >= (int32)EQUIPMENT_SLOT_START; slot--)
+    for (int32 i = (int32)EQUIPMENT_SLOT_TABARD; i >= (int32)EQUIPMENT_SLOT_START; i--)
     {
+        int32 const slot = MainHandFirst(i);
         if (slot == EQUIPMENT_SLOT_TABARD || slot == EQUIPMENT_SLOT_BODY || slot == EQUIPMENT_SLOT_RANGED)
             continue;
 
@@ -1041,33 +1056,25 @@ void BotFactory::InitEquipment(bool incremental, bool second_chance)
             bot->DestroyItem(INVENTORY_SLOT_BAG_0, slot, true);
         }
 
-        oldItem = bot->GetItemByPos(INVENTORY_SLOT_BAG_0, slot);
-        bool isforcedbreak = false;
-        int maxiRetry = 10;
-        do
+        // Gather up to 25 candidates; an inventory type with nothing for this bot (a two-hander for a rogue)
+        // is dropped instead of using up the tries
+        std::vector<InventoryType> types = GetPossibleInventoryTypeListBySlot((EquipmentSlots)slot);
+        for (uint32 tries = 0; tries < 100 && !types.empty() && items[slot].size() < 25; ++tries)
         {
-            for (InventoryType inventoryType : GetPossibleInventoryTypeListBySlot((EquipmentSlots)slot))
+            for (auto type = types.begin(); type != types.end();)
             {
-                uint32 itemid = sRandomItemMgr->FindBestItemForLevelAndEquip(bot, inventoryType);
-                if (itemid)
+                uint32 itemid = sRandomItemMgr->FindBestItemForLevelAndEquip(bot, *type);
+                if (!itemid)
                 {
-                    uint32 skipProb = 25;
-                    if (urand(1, 100) <= skipProb)
-                        continue;
+                    type = types.erase(type);
+                    continue;
+                }
 
+                if (urand(1, 100) > 25)
                     items[slot].push_back(itemid);
-                }
-                else
-                {
-                    maxiRetry--;
-                    if (maxiRetry <= 0)
-                    {
-                        isforcedbreak = true;
-                        break;
-                    }
-                }
+                ++type;
             }
-        } while (items[slot].size() < 25 && !isforcedbreak);
+        }
 
         std::vector<uint32>& ids = items[slot];
         if (ids.empty())
@@ -1121,8 +1128,9 @@ void BotFactory::InitEquipment(bool incremental, bool second_chance)
     /// @todo: clean up duplicate code
     if (second_chance)
     {
-        for (int32 slot = (int32)EQUIPMENT_SLOT_TABARD; slot >= (int32)EQUIPMENT_SLOT_START; slot--)
+        for (int32 i = (int32)EQUIPMENT_SLOT_TABARD; i >= (int32)EQUIPMENT_SLOT_START; i--)
         {
+            int32 const slot = MainHandFirst(i);
             if (slot == EQUIPMENT_SLOT_TABARD || slot == EQUIPMENT_SLOT_BODY)
                 continue;
 

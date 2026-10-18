@@ -364,6 +364,14 @@ bool RandomItemManager::ShouldEquipWeaponForSpec(Classes playerclass, Specializa
             }
             break;
         }
+        case CLASS_DEATH_KNIGHT:
+        {
+            // Missing before, which left every death knight without a weapon; a two-hander suits all three
+            // specializations (Frost may also dual wield)
+            mh_weapons = { ITEM_SUBCLASS_WEAPON_SWORD2, ITEM_SUBCLASS_WEAPON_AXE2, ITEM_SUBCLASS_WEAPON_MACE2,
+                          ITEM_SUBCLASS_WEAPON_POLEARM };
+            break;
+        }
         case CLASS_HUNTER:
         {
             mh_weapons = { ITEM_SUBCLASS_WEAPON_BOW, ITEM_SUBCLASS_WEAPON_CROSSBOW, ITEM_SUBCLASS_WEAPON_GUN };
@@ -371,8 +379,18 @@ bool RandomItemManager::ShouldEquipWeaponForSpec(Classes playerclass, Specializa
         }
         case CLASS_ROGUE:
         {
-            mh_weapons = { ITEM_SUBCLASS_WEAPON_DAGGER };
-            oh_weapons = { ITEM_SUBCLASS_WEAPON_DAGGER };
+            // Mutilate and Backstab need daggers; Combat uses any one-hander
+            if (spec == Specializations::SPEC_ROGUE_COMBAT)
+            {
+                mh_weapons = { ITEM_SUBCLASS_WEAPON_DAGGER, ITEM_SUBCLASS_WEAPON_SWORD, ITEM_SUBCLASS_WEAPON_MACE,
+                              ITEM_SUBCLASS_WEAPON_FIST_WEAPON, ITEM_SUBCLASS_WEAPON_AXE };
+                oh_weapons = mh_weapons;
+            }
+            else
+            {
+                mh_weapons = { ITEM_SUBCLASS_WEAPON_DAGGER };
+                oh_weapons = { ITEM_SUBCLASS_WEAPON_DAGGER };
+            }
             break;
         }
         case CLASS_PRIEST:
@@ -724,6 +742,8 @@ uint32 RandomItemManager::FindBestItemForLevelAndEquip(Player* bot, InventoryTyp
 
             ItemTemplate const* proto = sObjectMgr->GetItemTemplate(itemID);
             if (proto->RequiredLevel > level) continue;
+            // Bots don't earn reputation; the client refuses these (EQUIP_ERR_CANT_EQUIP_REPUTATION)
+            if (proto->RequiredReputationFaction) continue;
             if ((proto->AllowableClass & bot->GetClassMask()) == 0 || (proto->AllowableRace & bot->GetRaceMask()) == 0) continue;
             if (level < 10 && proto->ItemLevel > 100) continue;
 
